@@ -1,54 +1,59 @@
-import { ADMIN_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
-import { provideGameplayInterface } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  type GameplayCommandContext,
+} from "cocofaith-sdk/gameplay";
 import { createHash, randomUUID } from "node:crypto";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API } from "../../shared/contracts";
+import { ADMIN_MESSAGES } from "./messages";
 import { FaithAdminService } from "./service";
-export function createFaithAdminModule() {
-  let admin: FaithAdminService;
-  async function handleFaithAdmin(ctx: BusinessCommandContext): Promise<GameplayOutput> {
-    if (ctx.uid === null || !(await admin.isCreator(ctx.uid))) return { type: "silent" };
-    if (!admin.commands.get("数值"))
-      throw new BusinessError(
-        "MODULE_NOT_READY",
-        "管理命令尚未就绪，请重新加载 CoCoFaith Business。",
-      );
-    const [name, ...args] = ctx.args,
-      command = name ? admin.commands.get(name) : undefined;
-    if (!command)
-      throw new BusinessError(
-        "INVALID_INPUT",
-        ADMIN_MESSAGES.commands(admin.commands.list().map((item) => item.command)),
-      );
-    const requestId = ctx.event.eventId
-      ? createHash("sha256")
-          .update(
-            JSON.stringify([
-              ctx.uid,
-              ctx.event.identity,
-              ctx.event.roomKey,
-              ctx.event.channelId,
-              ctx.event.eventId,
-            ]),
-          )
-          .digest("hex")
-          .slice(0, 48)
-      : randomUUID();
-    return command.execute({
-      actorUid: ctx.uid,
-      args,
-      core: ctx.core,
-      requestId,
-    });
-  }
-  return defineAdvancedGameplay({
+type Context = GameplayCommandContext<Record<string, never>, FaithAdminService, number | null>;
+
+async function handleFaithAdmin(ctx: Context): Promise<GameplayOutput> {
+  if (ctx.uid === null || !(await ctx.service.isCreator(ctx.uid))) return { type: "silent" };
+  if (!ctx.service.commands.get("数值"))
+    throw new BusinessError(
+      "MODULE_NOT_READY",
+      "管理命令尚未就绪，请重新加载 CoCoFaith Business。",
+    );
+  const [name, ...args] = ctx.args,
+    command = name ? ctx.service.commands.get(name) : undefined;
+  if (!command)
+    throw new BusinessError(
+      "INVALID_INPUT",
+      ADMIN_MESSAGES.commands(ctx.service.commands.list().map((item) => item.command)),
+    );
+  const requestId = ctx.event.eventId
+    ? createHash("sha256")
+        .update(
+          JSON.stringify([
+            ctx.uid,
+            ctx.event.identity,
+            ctx.event.roomKey,
+            ctx.event.channelId,
+            ctx.event.eventId,
+          ]),
+        )
+        .digest("hex")
+        .slice(0, 48)
+    : randomUUID();
+  return command.execute({
+    actorUid: ctx.uid,
+    args,
+    core: ctx.core,
+    requestId,
+  });
+}
+
+export function createFaithAdminGameplay() {
+  return defineGameplay({
     name: "faith_admin",
     dependencies: ["faith"],
-    init(context) {
-      admin = new FaithAdminService(context.core);
+    setup(context) {
+      const admin = new FaithAdminService(context.core);
       provideGameplayInterface(
         context,
         ADMIN_FIELDS_API,
@@ -68,7 +73,7 @@ export function createFaithAdminModule() {
         }),
         { version: "1.0.0" },
       );
-      context.core.lifecycle.track(
+      context.track(
         admin.commands.register({
           business: "faith_admin",
           command: "数值",
@@ -96,8 +101,10 @@ export function createFaithAdminModule() {
           },
         }),
       );
+
+      return admin;
     },
-    dispose() {
+    dispose(admin) {
       admin.fields.clear();
       admin.commands.clear();
     },
@@ -109,6 +116,11 @@ export function createFaithAdminModule() {
         run: handleFaithAdmin,
       },
     },
+    reload() {},
   });
+}
+
+export function createFaithAdminModule() {
+  return adaptGameplayDefinition(createFaithAdminGameplay());
 }
 export const faithAdminModule = createFaithAdminModule();

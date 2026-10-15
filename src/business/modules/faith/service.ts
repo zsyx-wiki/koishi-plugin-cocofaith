@@ -1,4 +1,3 @@
-import { FAITH_MESSAGES } from "./messages";
 import type {
   FaithBusinessCoreScope,
   FaithCoreUserData,
@@ -7,12 +6,16 @@ import type {
 } from "cocofaith-sdk/core";
 import { BusinessError } from "../../framework/errors";
 import type { FaithGameplayConfig } from "./config";
+import { FAITH_MESSAGES } from "./messages";
 export type { FaithGameplayConfig } from "./config";
 export class FaithGameplayService {
   constructor(
     private core: FaithBusinessCoreScope,
     private config: Readonly<FaithGameplayConfig>,
   ) {}
+  configure(config: Readonly<FaithGameplayConfig>) {
+    this.config = config;
+  }
   async info(uid: number) {
     return this.requireRegistered(uid);
   }

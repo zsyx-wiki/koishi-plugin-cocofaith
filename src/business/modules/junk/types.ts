@@ -1,6 +1,2 @@
 export type { JunkConfig } from "./config";
-export interface JunkState {
-    date: string;
-    freeUsed: boolean;
-    paidUsed: boolean;
-}
+export type JunkState = ReturnType<typeof import("./module").junkState.parse>;

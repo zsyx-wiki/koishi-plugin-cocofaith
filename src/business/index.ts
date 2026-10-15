@@ -19,3 +19,4 @@ export * from "./shared/contracts";
 export { MESSAGES } from "./shared/messages";
 export type { FaithMessages } from "./shared/messages";
 export * from "./version";
+export * from "./framework/built-in";

@@ -50,6 +50,7 @@ export function createBindingGameplay() {
     config: BINDING_CONFIG,
     setup(ctx) {
       const service = new BindingService(ctx.core, ctx.config);
+      ctx.defer(() => service.dispose());
       provideGameplayInterface(
         ctx,
         BINDING_API,
@@ -61,9 +62,6 @@ export function createBindingGameplay() {
     },
     reload(service, config) {
       service.configure(config);
-    },
-    dispose(service) {
-      service.dispose();
     },
     commands: {
       coconut_water: {

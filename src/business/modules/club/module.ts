@@ -1,115 +1,99 @@
-import { CLUB_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
-import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  useGameplayInterface,
+  type GameplayCommandContext,
+} from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API, CLUB_API, TITLE_API } from "../../shared/contracts";
 import { CLUB_CONFIG, type ClubConfig } from "./config";
 import { CLUB_IDENTITY } from "./data";
+import { CLUB_MESSAGES } from "./messages";
 import { ClubService } from "./service";
-export function createClubModule() {
-  let service: ClubService;
-  async function handleClub(ctx: BusinessCommandContext<ClubConfig>): Promise<GameplayOutput> {
-    const uid = requireUid(ctx.uid),
-      [status, pool] = await Promise.all([service.status(uid), service.pool()]);
-    if (status) await service.reconcileTitles(uid);
-    return {
-      type: "text",
-      content: status
-        ? CLUB_MESSAGES.info(
-            status.levelName,
-            status.active,
-            status.duesEnabled,
-            status.stats.feeCount,
-            status.stats.goldContribution,
-            status.stats.ascensionContribution,
-            pool.gold,
-            pool.ascension,
+type Context = GameplayCommandContext<ClubConfig, ClubService>;
+
+async function handleClub(ctx: Context): Promise<GameplayOutput> {
+  const uid = ctx.uid,
+    [status, pool] = await Promise.all([ctx.service.status(uid), ctx.service.pool()]);
+  if (status) await ctx.service.reconcileTitles(uid);
+  return {
+    type: "text",
+    content: status
+      ? CLUB_MESSAGES.info(
+          status.levelName,
+          status.active,
+          status.duesEnabled,
+          status.stats.feeCount,
+          status.stats.goldContribution,
+          status.stats.ascensionContribution,
+          pool.gold,
+          pool.ascension,
+        )
+      : CLUB_MESSAGES.nonMemberInfo(pool.gold, pool.ascension),
+  };
+}
+
+async function handleClubJoin(ctx: Context): Promise<GameplayOutput> {
+  const result = await ctx.service.join(ctx.uid, ctx.event.eventId);
+  return {
+    type: "text",
+    content:
+      result.kind === "first"
+        ? CLUB_MESSAGES.firstJoin(
+            result.status.levelName,
+            result.cost.gold,
+            result.cost.ascension_score,
+            result.titles,
           )
-        : CLUB_MESSAGES.nonMemberInfo(pool.gold, pool.ascension),
-    };
-  }
-  async function handleClubJoin(ctx: BusinessCommandContext<ClubConfig>): Promise<GameplayOutput> {
-    const result = await service.join(requireUid(ctx.uid), ctx.event.eventId);
-    return {
-      type: "text",
-      content:
-        result.kind === "first"
-          ? CLUB_MESSAGES.firstJoin(
+        : result.status.level === "hall"
+          ? CLUB_MESSAGES.hallRejoin(result.charged, result.cost.gold, result.cost.ascension_score)
+          : CLUB_MESSAGES.rejoin(
               result.status.levelName,
+              result.charged,
               result.cost.gold,
               result.cost.ascension_score,
-              result.titles,
-            )
-          : result.status.level === "hall"
-            ? CLUB_MESSAGES.hallRejoin(
-                result.charged,
-                result.cost.gold,
-                result.cost.ascension_score,
-              )
-            : CLUB_MESSAGES.rejoin(
-                result.status.levelName,
-                result.charged,
-                result.cost.gold,
-                result.cost.ascension_score,
-              ),
-    };
-  }
-  async function handleClubQuit(ctx: BusinessCommandContext<ClubConfig>): Promise<GameplayOutput> {
-    const result = await service.quit(requireUid(ctx.uid), ctx.event.eventId);
-    return {
-      type: "text",
-      content: result.kind === "hall" ? CLUB_MESSAGES.hallQuit : CLUB_MESSAGES.quit,
-    };
-  }
-  async function handleClubAid(ctx: BusinessCommandContext<ClubConfig>): Promise<GameplayOutput> {
-    const result = await service.aid(requireUid(ctx.uid), ctx.event.eventId);
-    return { type: "text", content: CLUB_MESSAGES.aided(result.gold, result.ascension) };
-  }
-  async function handleClubDonate(
-    ctx: BusinessCommandContext<ClubConfig>,
-  ): Promise<GameplayOutput> {
-    if (ctx.args.length !== 2)
-      throw new BusinessError("INVALID_INPUT", "格式：俱乐部 贡献 [金币|登神分] [数值]");
-    const currency = parseCurrency(ctx.args[0]),
-      amount = Number(ctx.args[1]);
-    const result = await service.donate(requireUid(ctx.uid), currency, amount, ctx.event.eventId);
-    return {
-      type: "text",
-      content: CLUB_MESSAGES.donated(
-        currency === "gold" ? "金币" : "登神分",
-        amount,
-        result.status.levelName,
-        result.titles,
-      ),
-    };
-  }
-  async function handleClubInfo(ctx: BusinessCommandContext<ClubConfig>): Promise<GameplayOutput> {
-    const uid = requireUid(ctx.uid),
-      [status, pool] = await Promise.all([service.status(uid), service.pool()]);
-    if (status) await service.reconcileTitles(uid);
-    return {
-      type: "text",
-      content: status
-        ? CLUB_MESSAGES.info(
-            status.levelName,
-            status.active,
-            status.duesEnabled,
-            status.stats.feeCount,
-            status.stats.goldContribution,
-            status.stats.ascensionContribution,
-            pool.gold,
-            pool.ascension,
-          )
-        : CLUB_MESSAGES.nonMemberInfo(pool.gold, pool.ascension),
-    };
-  }
-  return defineAdvancedGameplay<never, never, ClubConfig>({
+            ),
+  };
+}
+
+async function handleClubQuit(ctx: Context): Promise<GameplayOutput> {
+  const result = await ctx.service.quit(ctx.uid, ctx.event.eventId);
+  return {
+    type: "text",
+    content: result.kind === "hall" ? CLUB_MESSAGES.hallQuit : CLUB_MESSAGES.quit,
+  };
+}
+
+async function handleClubAid(ctx: Context): Promise<GameplayOutput> {
+  const result = await ctx.service.aid(ctx.uid, ctx.event.eventId);
+  return { type: "text", content: CLUB_MESSAGES.aided(result.gold, result.ascension) };
+}
+
+async function handleClubDonate(ctx: Context): Promise<GameplayOutput> {
+  if (ctx.args.length !== 2)
+    throw new BusinessError("INVALID_INPUT", "格式：俱乐部 贡献 [金币|登神分] [数值]");
+  const currency = parseCurrency(ctx.args[0]),
+    amount = Number(ctx.args[1]);
+  const result = await ctx.service.donate(ctx.uid, currency, amount, ctx.event.eventId);
+  return {
+    type: "text",
+    content: CLUB_MESSAGES.donated(
+      currency === "gold" ? "金币" : "登神分",
+      amount,
+      result.status.levelName,
+      result.titles,
+    ),
+  };
+}
+
+export function createClubGameplay() {
+  return defineGameplay({
     name: "club",
     dependencies: ["faith_admin", "title"],
     config: CLUB_CONFIG,
-    init(context) {
+    setup(context) {
       context.core.registerTable(
         {
           key: "string",
@@ -125,9 +109,9 @@ export function createClubModule() {
         },
         { primary: "key", indexes: [["kind", "status"], "uid"] },
       );
-      context.core.lifecycle.track(context.core.statusIdentities.register(CLUB_IDENTITY));
+      context.track(context.core.statusIdentities.register(CLUB_IDENTITY));
       const titles = useGameplayInterface(context, TITLE_API);
-      service = new ClubService(context.core, titles, context.config);
+      const service = new ClubService(context.core, titles, context.config);
       provideGameplayInterface(
         context,
         CLUB_API,
@@ -151,7 +135,7 @@ export function createClubModule() {
         ["俱乐部登神贡献", "ascensionContribution"],
       ] as const;
       for (const [name, field] of definitions)
-        context.core.lifecycle.track(
+        context.track(
           fields.register({
             name,
             description: "只修改会员累计数据，不改变贡献池。",
@@ -167,7 +151,7 @@ export function createClubModule() {
           }),
         );
       const admin = useGameplayInterface(context, ADMIN_COMMANDS_API);
-      context.core.lifecycle.track(
+      context.track(
         admin.register({
           business: "club",
           command: "俱乐部",
@@ -204,12 +188,14 @@ export function createClubModule() {
           },
         }),
       );
+
+      return service;
     },
-    async ready() {
-      await service.initialize();
+    ready(service) {
+      return service.initialize();
     },
-    reload(context) {
-      service.configure(context.config);
+    reload(service, config) {
+      service.configure(config);
     },
     commands: {
       club: {
@@ -236,18 +222,18 @@ export function createClubModule() {
           },
           info: {
             triggers: ["信息", "详情"],
-            run: handleClubInfo,
+            run: handleClub,
           },
         },
       },
     },
   });
 }
-export const clubModule = createClubModule();
-function requireUid(uid: number | null) {
-  if (uid === null) throw new BusinessError("UNREGISTERED");
-  return uid;
+
+export function createClubModule() {
+  return adaptGameplayDefinition(createClubGameplay());
 }
+export const clubModule = createClubModule();
 function parseCurrency(value: string) {
   if (value === "金币" || value === "gold") return "gold" as const;
   if (["登神分", "登神分数", "ascension_score"].includes(value)) return "ascension_score" as const;

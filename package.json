@@ -21,13 +21,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tests/types",
-    "watch": "tsup -w",
+    "build": "npm run generate && tsup",
+    "typecheck": "npm run generate && tsc --noEmit && tsc --noEmit -p tests/types",
+    "watch": "npm run generate && tsup --watch src",
     "test": "npm run typecheck && npm run build && node --test tests/core/*.test.cjs tests/business/*.test.cjs tests/integration/*.test.cjs",
     "format": "node scripts/format-source.cjs src",
     "prepublishOnly": "npm test",
-    "test:package": "node scripts/test-package.cjs"
+    "test:package": "node scripts/test-package.cjs",
+    "generate": "node scripts/generate-gameplays.cjs"
   },
   "peerDependencies": {
     "koishi": "^4.16.0"
@@ -41,7 +42,8 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "koishi": "^4.16.0",
-    "@minatojs/driver-sqlite": "^4.7.0"
+    "@minatojs/driver-sqlite": "^4.7.0",
+    "prettier": "^3.6.2"
   },
   "license": "GPL-3.0-or-later",
   "publishConfig": {

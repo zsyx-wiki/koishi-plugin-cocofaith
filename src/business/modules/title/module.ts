@@ -1,53 +1,58 @@
-import { TITLE_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   contributeGameplay,
+  defineGameplay,
   provideGameplayInterface,
   useGameplayInterface,
+  type GameplayCommandContext,
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_COMMANDS_API, FAITH_INFO, TITLE_API } from "../../shared/contracts";
 import { BUILTIN_TITLES } from "./data";
+import { TITLE_MESSAGES } from "./messages";
 import { TitleService } from "./service";
 import type { TitleServiceApi } from "./types";
-export function createTitleModule() {
-  let service: TitleService;
-  async function handleTitleList(ctx: BusinessCommandContext): Promise<GameplayOutput> {
-    const titles = await service.listOwned(requireUid(ctx.uid)),
-      active = await service.getActive(requireUid(ctx.uid));
-    if (!titles.length) return { type: "text", content: TITLE_MESSAGES.empty };
-    return {
-      type: "text",
-      content: TITLE_MESSAGES.list(
-        titles.map((title) => ({ name: title.name, active: active?.id === title.id })),
-      ),
-    };
-  }
-  async function handleTitleDetail(ctx: BusinessCommandContext): Promise<GameplayOutput> {
-    const name = ctx.args.join(" ").trim();
-    if (!name) throw new BusinessError("INVALID_INPUT", "格式：称号 详情 [称号名]");
-    const owned = await service.listOwned(requireUid(ctx.uid)),
-      title = service.resolve(name);
-    if (!title || !owned.some((item) => item.id === title.id))
-      throw new BusinessError("NOT_FOUND", `你尚未拥有称号【${name}】。`);
-    const bonuses = title.bonuses?.length ? title.bonuses.map(formatBonus).join("、") : "无";
-    return {
-      type: "text",
-      content: TITLE_MESSAGES.detail(title.name, title.description, title.source, bonuses),
-    };
-  }
-  async function handleTitleUse(ctx: BusinessCommandContext): Promise<GameplayOutput> {
-    const name = ctx.args.join(" ").trim();
-    if (!name) throw new BusinessError("INVALID_INPUT", "格式：称号 使用 [称号名]");
-    const title = await service.use(requireUid(ctx.uid), name);
-    return { type: "text", content: TITLE_MESSAGES.used(title!.name) };
-  }
-  return defineAdvancedGameplay({
+type Context = GameplayCommandContext<Record<string, never>, TitleService>;
+
+async function handleTitleList(ctx: Context): Promise<GameplayOutput> {
+  const titles = await ctx.service.listOwned(ctx.uid),
+    active = await ctx.service.getActive(ctx.uid);
+  if (!titles.length) return { type: "text", content: TITLE_MESSAGES.empty };
+  return {
+    type: "text",
+    content: TITLE_MESSAGES.list(
+      titles.map((title) => ({ name: title.name, active: active?.id === title.id })),
+    ),
+  };
+}
+
+async function handleTitleDetail(ctx: Context): Promise<GameplayOutput> {
+  const name = ctx.args.join(" ").trim();
+  if (!name) throw new BusinessError("INVALID_INPUT", "格式：称号 详情 [称号名]");
+  const owned = await ctx.service.listOwned(ctx.uid),
+    title = ctx.service.resolve(name);
+  if (!title || !owned.some((item) => item.id === title.id))
+    throw new BusinessError("NOT_FOUND", `你尚未拥有称号【${name}】。`);
+  const bonuses = title.bonuses?.length ? title.bonuses.map(formatBonus).join("、") : "无";
+  return {
+    type: "text",
+    content: TITLE_MESSAGES.detail(title.name, title.description, title.source, bonuses),
+  };
+}
+
+async function handleTitleUse(ctx: Context): Promise<GameplayOutput> {
+  const name = ctx.args.join(" ").trim();
+  if (!name) throw new BusinessError("INVALID_INPUT", "格式：称号 使用 [称号名]");
+  const title = await ctx.service.use(ctx.uid, name);
+  return { type: "text", content: TITLE_MESSAGES.used(title!.name) };
+}
+
+export function createTitleGameplay() {
+  return defineGameplay({
     name: "title",
     dependencies: ["faith_admin"],
-    init(context) {
+    setup(context) {
       context.core.registerTable(
         {
           uid: "unsigned",
@@ -57,9 +62,9 @@ export function createTitleModule() {
         },
         { primary: "uid", indexes: ["active"] },
       );
-      service = new TitleService(context.core);
+      const service = new TitleService(context.core);
       service.registerMany(BUILTIN_TITLES);
-      context.core.lifecycle.track(
+      context.track(
         context.core.bonuses.registerProvider(
           async ({ uid, type }) => {
             const state = await service.state(uid, false),
@@ -97,7 +102,7 @@ export function createTitleModule() {
       );
       provideGameplayInterface(context, TITLE_API, createPublicApi(service), { version: "1.0.0" });
       const admin = useGameplayInterface(context, ADMIN_COMMANDS_API);
-      context.core.lifecycle.track(
+      context.track(
         admin.register({
           business: "title",
           command: "称号",
@@ -130,8 +135,10 @@ export function createTitleModule() {
           },
         }),
       );
+
+      return service;
     },
-    dispose() {
+    dispose(service) {
       service.clearCache();
     },
     commands: {
@@ -158,13 +165,16 @@ export function createTitleModule() {
         },
       },
     },
+    reload(service) {
+      service.clearCache();
+    },
   });
 }
-export const titleModule = createTitleModule();
-function requireUid(uid: number | null) {
-  if (uid === null) throw new BusinessError("UNREGISTERED");
-  return uid;
+
+export function createTitleModule() {
+  return adaptGameplayDefinition(createTitleGameplay());
 }
+export const titleModule = createTitleModule();
 function formatBonus(value: { modifier?: number; fixedBonus?: number; detail?: string }) {
   if (value.detail) return value.detail;
   return [

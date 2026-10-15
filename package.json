@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-cocofaith",
-  "version": "3.0.0-alpha.5",
+  "version": "3.0.0-rc.1",
   "description": "围绕信仰养成、物品收集与群聊对局的 Koishi 聊天游戏",
   "author": "Mueo <mueo@mueoo.com>",
   "repository": {
@@ -34,7 +34,7 @@
     "koishi": "^4.16.0"
   },
   "dependencies": {
-    "cocofaith-sdk": "3.0.0-alpha.5",
+    "cocofaith-sdk": "3.0.0-rc.1",
     "cordis": "^3.18.1"
   },
   "devDependencies": {

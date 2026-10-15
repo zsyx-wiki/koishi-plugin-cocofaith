@@ -4,7 +4,7 @@
   <p><strong>信仰养成与群聊游戏</strong></p>
   <p>
     <img alt="Koishi" src="https://img.shields.io/badge/Koishi-4.16%2B-60a5fa?style=flat-square">
-    <img alt="Version" src="https://img.shields.io/badge/version-3.0.0--alpha.5-a78bfa?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-3.0.0--rc.1-a78bfa?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-52b788?style=flat-square">
     <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white">
   </p>
@@ -20,7 +20,7 @@ CoCoFaith 是一个运行在 Koishi 上的聊天游戏插件，包含信仰、�
 在 Koishi 插件市场搜索 `cocofaith` 安装，或在 Koishi 项目目录执行：
 
 ```sh
-npm install koishi-plugin-cocofaith@alpha
+npm install koishi-plugin-cocofaith@rc
 ```
 
 平台接入还需安装对应的 CoCoFaith QQ 或 OneBot 适配器。

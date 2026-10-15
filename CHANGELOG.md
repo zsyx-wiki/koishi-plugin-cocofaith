@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 3.0.0-rc.1
 
 - [Business] 非房间玩法统一使用 Gameplay SDK，完善配置重载、跨玩法接口和初始化失败时的资源清理。
 

@@ -1,35 +1,38 @@
-import { DAILY_PRAYER_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
-import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  useGameplayInterface,
+  type GameplayCommandContext,
+} from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay, type BusinessResult } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_FIELDS_API, DAILY_PRAYER_API } from "../../shared/contracts";
 import { DAILY_PRAYER_CONFIG } from "./config";
+import { DAILY_PRAYER_MESSAGES } from "./messages";
 import { DailyPrayerService } from "./service";
 import type { DailyPrayerConfig, DailyPrayerResult } from "./types";
-export function createDailyPrayerModule() {
-  let service: DailyPrayerService;
+type Context = GameplayCommandContext<DailyPrayerConfig, DailyPrayerService>;
+
+async function handlePray(ctx: Context): Promise<GameplayOutput> {
+  const faith = ctx.core.faiths.resolvePrayerWord(ctx.event.content);
+  if (!faith) throw new BusinessError("NOT_FOUND", "这段祷词没有对应的信仰。");
+  const result = await ctx.service.pray(ctx.uid, faith.name, faith.deity_name ?? faith.name);
+  await ctx.core.hooks.emit("completed", result);
+  return { type: "text", content: formatResult(result) };
+}
+
+export function createDailyPrayerGameplay() {
   let matchesPrayer = (_word: string) => false;
-  async function handlePray(
-    ctx: BusinessCommandContext<DailyPrayerConfig>,
-  ): Promise<BusinessResult> {
-    if (ctx.uid === null) throw new BusinessError("UNREGISTERED");
-    const faith = ctx.core.faiths.resolvePrayerWord(ctx.event.content);
-    if (!faith) throw new BusinessError("NOT_FOUND", "这段祷词没有对应的信仰。");
-    const result = await service.pray(ctx.uid, faith.name, faith.deity_name ?? faith.name);
-    await ctx.core.hooks.emit("completed", result);
-    return { type: "text", content: formatResult(result) };
-  }
-  return defineAdvancedGameplay<never, never, DailyPrayerConfig>({
+  return defineGameplay({
     name: "daily_prayer",
     dependencies: ["faith", "faith_admin"],
     config: DAILY_PRAYER_CONFIG,
-    init(context) {
-      service = new DailyPrayerService(context.core, context.config);
+    setup(context) {
+      const service = new DailyPrayerService(context.core, context.config);
       matchesPrayer = (word) => !!context.core.faiths.resolvePrayerWord(word);
       const admin = useGameplayInterface(context, ADMIN_FIELDS_API);
-      context.core.lifecycle.track(
+      context.track(
         admin.register({
           name: "永久祈祷",
           description: "永久增加每日祈祷上限",
@@ -39,7 +42,7 @@ export function createDailyPrayerModule() {
           },
         }),
       );
-      context.core.lifecycle.track(
+      context.track(
         admin.register({
           name: "临时祈祷",
           description: "仅当前游戏日有效的额外祈祷次数",
@@ -55,9 +58,11 @@ export function createDailyPrayerModule() {
         Object.freeze({ status: (uid: number) => service.status(uid) }),
         { version: "1.0.0" },
       );
+
+      return service;
     },
-    reload(context) {
-      service = new DailyPrayerService(context.core, context.config);
+    reload(service, config) {
+      service.configure(config);
     },
     commands: {
       pray: {
@@ -69,6 +74,10 @@ export function createDailyPrayerModule() {
       },
     },
   });
+}
+
+export function createDailyPrayerModule() {
+  return adaptGameplayDefinition(createDailyPrayerGameplay());
 }
 export const dailyPrayerModule = createDailyPrayerModule();
 function formatResult(result: DailyPrayerResult) {

@@ -1,65 +1,68 @@
-import { BINDING_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
-import { provideGameplayInterface } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  type GameplayCommandContext,
+} from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { BINDING_API } from "../../shared/contracts";
 import { BINDING_CONFIG, type BindingConfig } from "./config";
+import { BINDING_MESSAGES } from "./messages";
 import { BindingService } from "./service";
-export function createBindingModule() {
-  let service: BindingService;
-  async function handleCoconutWaterRequestLink(
-    ctx: BusinessCommandContext<BindingConfig>,
-  ): Promise<GameplayOutput> {
-    if (ctx.event.identity?.adapter === "onebot") {
-      if (ctx.args.length) throw new BusinessError("INVALID_INPUT", "格式：椰子水 申请绑定");
-      const result = await service.issue(ctx.event);
-      if (result.kind === "already-bound")
-        return { type: "text", content: BINDING_MESSAGES.alreadyBound(result.uid) };
-      return { type: "text", content: BINDING_MESSAGES.tokenA(result.tokenA, result.expiresIn) };
-    }
-    if (ctx.args.length !== 1)
-      throw new BusinessError("INVALID_INPUT", "格式：椰子水 申请绑定 [TokenA]");
-    const result = await service.claim(ctx.event, ctx.args[0]);
+type Context = GameplayCommandContext<BindingConfig, BindingService, number | null>;
+
+async function handleCoconutWaterRequestLink(ctx: Context): Promise<GameplayOutput> {
+  if (ctx.event.identity?.adapter === "onebot") {
+    if (ctx.args.length) throw new BusinessError("INVALID_INPUT", "格式：椰子水 申请绑定");
+    const result = await ctx.service.issue(ctx.event);
     if (result.kind === "already-bound")
       return { type: "text", content: BINDING_MESSAGES.alreadyBound(result.uid) };
-    return { type: "text", content: BINDING_MESSAGES.claimed(result.qq) };
+    return { type: "text", content: BINDING_MESSAGES.tokenA(result.tokenA, result.expiresIn) };
   }
-  async function handleCoconutWaterConfirmLink(
-    ctx: BusinessCommandContext<BindingConfig>,
-  ): Promise<GameplayOutput> {
-    if (ctx.args.length !== 1)
-      throw new BusinessError("INVALID_INPUT", "格式：椰子水 确认绑定 [TokenB]");
-    const result = await service.confirm(ctx.event, ctx.args[0]);
-    return { type: "text", content: BINDING_MESSAGES.completed(result.uid, result.qq) };
-  }
-  async function handleCoconutWaterUserInfo(
-    ctx: BusinessCommandContext<BindingConfig>,
-  ): Promise<GameplayOutput> {
-    if (ctx.args.length) throw new BusinessError("INVALID_INPUT", "格式：椰子水 用户信息");
-    const result = await service.userInfo(ctx.event);
-    return {
-      type: "text",
-      content: BINDING_MESSAGES.info(result.adapter, result.uid, result.qqAccounts),
-    };
-  }
-  return defineAdvancedGameplay<never, never, BindingConfig>({
+  if (ctx.args.length !== 1)
+    throw new BusinessError("INVALID_INPUT", "格式：椰子水 申请绑定 [TokenA]");
+  const result = await ctx.service.claim(ctx.event, ctx.args[0]);
+  if (result.kind === "already-bound")
+    return { type: "text", content: BINDING_MESSAGES.alreadyBound(result.uid) };
+  return { type: "text", content: BINDING_MESSAGES.claimed(result.qq) };
+}
+
+async function handleCoconutWaterConfirmLink(ctx: Context): Promise<GameplayOutput> {
+  if (ctx.args.length !== 1)
+    throw new BusinessError("INVALID_INPUT", "格式：椰子水 确认绑定 [TokenB]");
+  const result = await ctx.service.confirm(ctx.event, ctx.args[0]);
+  return { type: "text", content: BINDING_MESSAGES.completed(result.uid, result.qq) };
+}
+
+async function handleCoconutWaterUserInfo(ctx: Context): Promise<GameplayOutput> {
+  if (ctx.args.length) throw new BusinessError("INVALID_INPUT", "格式：椰子水 用户信息");
+  const result = await ctx.service.userInfo(ctx.event);
+  return {
+    type: "text",
+    content: BINDING_MESSAGES.info(result.adapter, result.uid, result.qqAccounts),
+  };
+}
+
+export function createBindingGameplay() {
+  return defineGameplay({
     name: "binding",
     config: BINDING_CONFIG,
-    init(ctx) {
-      service = new BindingService(ctx.core, ctx.config);
+    setup(ctx) {
+      const service = new BindingService(ctx.core, ctx.config);
       provideGameplayInterface(
         ctx,
         BINDING_API,
         Object.freeze({ userInfo: service.userInfo.bind(service) }),
         { version: "1.0.0" },
       );
+
+      return service;
     },
-    reload(ctx) {
-      service.configure(ctx.config);
+    reload(service, config) {
+      service.configure(config);
     },
-    dispose() {
+    dispose(service) {
       service.dispose();
     },
     commands: {
@@ -90,5 +93,9 @@ export function createBindingModule() {
       },
     },
   });
+}
+
+export function createBindingModule() {
+  return adaptGameplayDefinition(createBindingGameplay());
 }
 export const bindingModule = createBindingModule();

@@ -1,11 +1,16 @@
-import { COLLECTION_MESSAGES } from "./messages";
-import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import type { InventoryMutation } from "cocofaith-sdk/core";
-import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
+import type { GameplayOutput } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  useGameplayInterface,
+  type GameplayCommandContext,
+} from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay, type BusinessCommandContext } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_COMMANDS_API, COLLECTION_API, TITLE_API } from "../../shared/contracts";
 import type { CollectionRule } from "./catalog";
+import { COLLECTION_MESSAGES } from "./messages";
 import { CollectionService } from "./service";
 export interface CollectionApi {
   state: CollectionService["state"];
@@ -15,46 +20,45 @@ export interface CollectionApi {
   refresh: CollectionService["refresh"];
   configure(itemId: string, rule: CollectionRule): () => void;
 }
-export function createCollectionModule() {
-  let service: CollectionService;
-  const uid = (ctx: BusinessCommandContext) => {
-    if (ctx.uid === null) throw new BusinessError("UNREGISTERED");
-    return ctx.uid;
-  };
-  const details = (limited: boolean) => async (ctx: BusinessCommandContext) => {
-    if (ctx.args.length > 1 || (ctx.args[0] !== undefined && !/^[1-9]\d*$/.test(ctx.args[0])))
-      throw new BusinessError("INVALID_INPUT", "格式：图鉴 详情/限定详情 [页码]");
-    const user = uid(ctx);
-    await service.refresh(user);
-    const result = await service.details(user, limited, Number(ctx.args[0] ?? 1));
-    return {
-      type: "text" as const,
-      content: COLLECTION_MESSAGES.page(
-        limited,
-        result.page,
-        result.pages,
-        result.entries.map(
-          (e) =>
-            `${e.collected ? "✓" : "○"} [${e.item.level === "??" ? "彩蛋" : e.item.level}] ${e.item.name}${e.pool ? `（${e.pool}）` : ""}`,
-        ),
+type Context = GameplayCommandContext<Record<string, never>, CollectionService>;
+
+const details = (limited: boolean) => async (ctx: Context) => {
+  if (ctx.args.length > 1 || (ctx.args[0] !== undefined && !/^[1-9]\d*$/.test(ctx.args[0])))
+    throw new BusinessError("INVALID_INPUT", "格式：图鉴 详情/限定详情 [页码]");
+  const user = ctx.uid;
+  await ctx.service.refresh(user);
+  const result = await ctx.service.details(user, limited, Number(ctx.args[0] ?? 1));
+  return {
+    type: "text" as const,
+    content: COLLECTION_MESSAGES.page(
+      limited,
+      result.page,
+      result.pages,
+      result.entries.map(
+        (e) =>
+          `${e.collected ? "✓" : "○"} [${e.item.level === "??" ? "彩蛋" : e.item.level}] ${e.item.name}${e.pool ? `（${e.pool}）` : ""}`,
       ),
-    };
+    ),
   };
-  async function handleCollectionView(ctx: BusinessCommandContext): Promise<GameplayOutput> {
-    const user = uid(ctx);
-    await service.refresh(user);
-    const rows = await service.progress(user);
-    return {
-      type: "text",
-      content: COLLECTION_MESSAGES.progress(
-        rows.map((r) => `${r.pool || "常规"}·${r.category}：${r.collected}/${r.total}`),
-      ),
-    };
-  }
-  return defineAdvancedGameplay({
+};
+
+async function handleCollectionView(ctx: Context): Promise<GameplayOutput> {
+  const user = ctx.uid;
+  await ctx.service.refresh(user);
+  const rows = await ctx.service.progress(user);
+  return {
+    type: "text",
+    content: COLLECTION_MESSAGES.progress(
+      rows.map((r) => `${r.pool || "常规"}·${r.category}：${r.collected}/${r.total}`),
+    ),
+  };
+}
+
+export function createCollectionGameplay() {
+  return defineGameplay({
     name: "collection",
     dependencies: ["title", "faith_admin"],
-    init(ctx) {
+    setup(ctx) {
       ctx.core.registerTable(
         {
           uid: "unsigned",
@@ -63,7 +67,7 @@ export function createCollectionModule() {
         },
         { primary: "uid" },
       );
-      service = new CollectionService(ctx.core, useGameplayInterface(ctx, TITLE_API));
+      const service = new CollectionService(ctx.core, useGameplayInterface(ctx, TITLE_API));
       provideGameplayInterface(
         ctx,
         COLLECTION_API,
@@ -77,7 +81,7 @@ export function createCollectionModule() {
             service.catalog.configure(itemId, rule),
         }),
       );
-      ctx.core.lifecycle.track(
+      ctx.track(
         ctx.core.hooks.on<InventoryMutation>(
           "inventory/changed",
           async (event) => {
@@ -86,7 +90,7 @@ export function createCollectionModule() {
           { id: "collection-inventory", timeout: 0 },
         ),
       );
-      ctx.core.lifecycle.track(
+      ctx.track(
         useGameplayInterface(ctx, ADMIN_COMMANDS_API).register({
           business: "collection",
           command: "图鉴",
@@ -114,6 +118,8 @@ export function createCollectionModule() {
           },
         }),
       );
+
+      return service;
     },
     commands: {
       collection: {
@@ -138,5 +144,10 @@ export function createCollectionModule() {
         },
       },
     },
+    reload() {},
   });
+}
+
+export function createCollectionModule() {
+  return adaptGameplayDefinition(createCollectionGameplay());
 }

@@ -1,59 +1,61 @@
-import { VOID_PRAYER_MESSAGES } from "./messages";
-import type { BusinessCommandContext } from "../../framework/types";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
-import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
+import {
+  defineGameplay,
+  provideGameplayInterface,
+  useGameplayInterface,
+  type GameplayCommandContext,
+  type GameplaySetupContext,
+} from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-import { defineAdvancedGameplay, type BusinessResult } from "../../framework/types";
+import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
 import { ADMIN_FIELDS_API, VOID_PRAYER_API } from "../../shared/contracts";
 import { formatItem } from "../../shared/item-format";
 import type { FaithAdminNumericFieldsApi } from "../faith-admin";
 import { VOID_PRAYER_CONFIG } from "./config";
+import { VOID_PRAYER_MESSAGES } from "./messages";
 import { VoidPrayerService, type VoidPrayerAdjustment } from "./service";
 import { type VoidPrayerConfig, type VoidPrayerResult } from "./types";
-export function createVoidPrayerModule() {
-  let service: VoidPrayerService;
-  async function handleVoidPrayer(
-    ctx: BusinessCommandContext<VoidPrayerConfig>,
-  ): Promise<BusinessResult> {
-    if (ctx.uid === null) throw new BusinessError("UNREGISTERED");
-    const count = parseCount(ctx.args);
-    const result = await service.pray(ctx.uid, count);
-    await ctx.core.hooks.emit(
-      "completed",
-      Object.freeze({
-        uid: ctx.uid,
-        date: result.date,
-        cost: result.cost,
-        counts: result.counts,
-        spItems: result.draws
-          .filter((draw) => draw.item.level === "SP")
-          .map((draw) => draw.item.name),
-      }),
-    );
-    return { type: "text", content: formatResult(result, ctx.core.items.levels.compare) };
-  }
-  async function handleVoidPrayerStatus(
-    ctx: BusinessCommandContext<VoidPrayerConfig>,
-  ): Promise<GameplayOutput> {
-    if (ctx.uid === null) throw new BusinessError("UNREGISTERED");
-    const value = await service.status(ctx.uid);
-    return {
-      type: "text",
-      content: VOID_PRAYER_MESSAGES.status(
-        value.dailyUsed,
-        value.dailyLimit,
-        value.remaining,
-        value.consumableExtra,
-        value.costReduction,
-      ),
-    };
-  }
-  return defineAdvancedGameplay<never, never, VoidPrayerConfig>({
+type Context = GameplayCommandContext<VoidPrayerConfig, VoidPrayerService>;
+
+async function handleVoidPrayer(ctx: Context): Promise<GameplayOutput> {
+  const count = parseCount(ctx.args);
+  const result = await ctx.service.pray(ctx.uid, count);
+  await ctx.core.hooks.emit(
+    "completed",
+    Object.freeze({
+      uid: ctx.uid,
+      date: result.date,
+      cost: result.cost,
+      counts: result.counts,
+      spItems: result.draws
+        .filter((draw) => draw.item.level === "SP")
+        .map((draw) => draw.item.name),
+    }),
+  );
+  return { type: "text", content: formatResult(result, ctx.core.items.levels.compare) };
+}
+
+async function handleVoidPrayerStatus(ctx: Context): Promise<GameplayOutput> {
+  const value = await ctx.service.status(ctx.uid);
+  return {
+    type: "text",
+    content: VOID_PRAYER_MESSAGES.status(
+      value.dailyUsed,
+      value.dailyLimit,
+      value.remaining,
+      value.consumableExtra,
+      value.costReduction,
+    ),
+  };
+}
+
+export function createVoidPrayerGameplay() {
+  return defineGameplay({
     name: "void_prayer",
     dependencies: ["faith", "faith_admin"],
     config: VOID_PRAYER_CONFIG,
-    init(context) {
-      service = new VoidPrayerService(context.core, context.config);
+    setup(context) {
+      const service = new VoidPrayerService(context.core, context.config);
       const admin = useGameplayInterface(context, ADMIN_FIELDS_API);
       registerAdminField(
         admin,
@@ -85,9 +87,11 @@ export function createVoidPrayerModule() {
         Object.freeze({ status: (uid: number) => service.status(uid) }),
         { version: "1.0.0" },
       );
+
+      return service;
     },
-    reload(context) {
-      service = new VoidPrayerService(context.core, context.config);
+    reload(service, config) {
+      service.configure(config);
     },
     commands: {
       void_prayer: {
@@ -105,6 +109,10 @@ export function createVoidPrayerModule() {
       },
     },
   });
+}
+
+export function createVoidPrayerModule() {
+  return adaptGameplayDefinition(createVoidPrayerGameplay());
 }
 export const voidPrayerModule = createVoidPrayerModule();
 function parseCount(args: readonly string[]) {
@@ -132,13 +140,13 @@ function formatResult(result: VoidPrayerResult, compare: (a: string, b: string) 
 }
 function registerAdminField(
   admin: FaithAdminNumericFieldsApi,
-  context: Parameters<NonNullable<ReturnType<typeof defineAdvancedGameplay>["init"]>>[0],
+  context: GameplaySetupContext<VoidPrayerConfig>,
   service: VoidPrayerService,
   name: string,
   field: VoidPrayerAdjustment,
   description: string,
 ) {
-  context.core.lifecycle.track(
+  context.track(
     admin.register({
       name,
       description,

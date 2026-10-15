@@ -17,6 +17,24 @@ function adapter(platform) {
   } }
 }
 
+test('main only requires the faithAdapter service, without a particular adapter plugin', async () => {
+  const manifest = require('../../package.json')
+  assert.deepEqual(main.inject, ['database', 'faithAdapter'])
+  assert.deepEqual(manifest.koishi.service.required, ['database', 'faithAdapter'])
+  const app = new App()
+  app.plugin(sqlite, { path: ':memory:' })
+  // 自定义实现不需要使用 SDK 注册器，也不需要特定的平台适配器包。
+  app.set('faithAdapter', { list: () => [], has: () => false })
+  app.plugin(main, { core: { gameDay: { enabled: false } } })
+  try {
+    await app.start()
+    assert.equal(app.faithCore.lifecycle.state, 'ready')
+    assert.equal(app.faithBusiness.status('junk').state, 'ready')
+  } finally {
+    await app.stop()
+  }
+})
+
 test('main waits for an adapter; two providers share one service and last removal suspends main', async () => {
   const app = new App()
   app.plugin(sqlite, { path: ':memory:' })

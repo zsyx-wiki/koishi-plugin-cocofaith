@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-cocofaith",
-  "version": "3.0.0-rc.1",
+  "version": "3.0.0-rc.2",
   "description": "围绕信仰养成、物品收集与群聊对局的 Koishi 聊天游戏",
   "author": "Mueo <mueo@mueoo.com>",
   "repository": {

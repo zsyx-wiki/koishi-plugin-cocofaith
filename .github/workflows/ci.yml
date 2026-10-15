@@ -1,0 +1,22 @@
+name: Test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare test dependencies
+        uses: ./.github/actions/prepare-tests
+      - name: Typecheck, build and test
+        run: npm test
+      - name: Check installable package
+        run: npm run test:package

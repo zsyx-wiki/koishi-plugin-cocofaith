@@ -1,0 +1,86 @@
+{
+  "name": "koishi-plugin-cocofaith",
+  "version": "3.0.0-alpha.5",
+  "description": "围绕信仰养成、物品收集与群聊对局的 Koishi 聊天游戏",
+  "author": "Mueo <mueo@mueoo.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zsyx-wiki/koishi-plugin-cocofaith.git"
+  },
+  "homepage": "https://github.com/zsyx-wiki/koishi-plugin-cocofaith#readme",
+  "bugs": {
+    "url": "https://github.com/zsyx-wiki/koishi-plugin-cocofaith/issues"
+  },
+  "main": "lib/index.js",
+  "module": "lib/index.mjs",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "assets",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests/types",
+    "watch": "tsup -w",
+    "test": "npm run typecheck && npm run build && node --test tests/core/*.test.cjs tests/business/*.test.cjs tests/integration/*.test.cjs",
+    "format": "node scripts/format-source.cjs src",
+    "prepublishOnly": "npm test",
+    "test:package": "node scripts/test-package.cjs"
+  },
+  "peerDependencies": {
+    "koishi": "^4.16.0"
+  },
+  "dependencies": {
+    "cocofaith-sdk": "^3.0.0-alpha.5",
+    "cordis": "^3.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "koishi": "^4.16.0",
+    "@minatojs/driver-sqlite": "^4.7.0"
+  },
+  "license": "GPL-3.0-or-later",
+  "publishConfig": {
+    "access": "public"
+  },
+  "koishi": {
+    "name": "CoCoFaith",
+    "description": {
+      "zh-CN": "围绕信仰养成、物品收集与群聊对局的 Koishi 聊天游戏"
+    },
+    "service": {
+      "required": [
+        "database",
+        "faithAdapter"
+      ],
+      "implements": [
+        "faithCore",
+        "faithBusiness"
+      ]
+    },
+    "category": "game"
+  },
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.mjs",
+      "require": "./lib/index.js"
+    },
+    "./core": {
+      "types": "./lib/core/index.d.ts",
+      "import": "./lib/core/index.mjs",
+      "require": "./lib/core/index.js"
+    },
+    "./business": {
+      "types": "./lib/business/index.d.ts",
+      "import": "./lib/business/index.mjs",
+      "require": "./lib/business/index.js"
+    },
+    "./package.json": "./package.json"
+  }
+}

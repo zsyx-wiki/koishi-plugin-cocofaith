@@ -1,0 +1,29 @@
+name: Prepare test dependencies
+description: Install declared dependencies and build source-matched CoCoFaith test implementations.
+inputs:
+  sdk-ref:
+    description: SDK source revision used by tests
+    default: main
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version: "24"
+        registry-url: "https://registry.npmjs.org"
+        package-manager-cache: false
+    - name: Check out SDK test implementation
+      uses: actions/checkout@v6
+      with:
+        repository: zsyx-wiki/cocofaith-sdk
+        ref: ${{ inputs.sdk-ref }}
+        path: .test-deps/sdk
+        persist-credentials: false
+    - name: Build SDK test implementation
+      shell: bash
+      run: |
+        npm install --prefix .test-deps/sdk
+        npm run build --prefix .test-deps/sdk
+    - name: Install package and test dependencies
+      shell: bash
+      run: npm install --no-save --package-lock=false "$GITHUB_WORKSPACE/.test-deps/sdk"

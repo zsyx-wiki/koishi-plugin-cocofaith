@@ -1,6 +1,9 @@
 name: Prepare test dependencies
 description: Install declared dependencies and build source-matched CoCoFaith test implementations.
 inputs:
+  published-sdk:
+    description: Install the declared SDK from npm instead of checking out source
+    default: "false"
   sdk-ref:
     description: SDK source revision used by tests
     default: main
@@ -13,6 +16,7 @@ runs:
         registry-url: "https://registry.npmjs.org"
         package-manager-cache: false
     - name: Check out SDK test implementation
+      if: inputs.published-sdk != 'true'
       uses: actions/checkout@v6
       with:
         repository: zsyx-wiki/cocofaith-sdk
@@ -20,10 +24,16 @@ runs:
         path: .test-deps/sdk
         persist-credentials: false
     - name: Build SDK test implementation
+      if: inputs.published-sdk != 'true'
       shell: bash
       run: |
         npm install --prefix .test-deps/sdk
         npm run build --prefix .test-deps/sdk
     - name: Install package and test dependencies
+      if: inputs.published-sdk != 'true'
       shell: bash
       run: npm install --no-save --package-lock=false "$GITHUB_WORKSPACE/.test-deps/sdk"
+    - name: Install published dependencies
+      if: inputs.published-sdk == 'true'
+      shell: bash
+      run: npm install --registry=https://registry.npmjs.org

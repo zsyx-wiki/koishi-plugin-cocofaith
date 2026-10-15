@@ -33,12 +33,14 @@ jobs:
       - name: Prepare test dependencies
         uses: ./.github/actions/prepare-tests
         with:
-          sdk-ref: v3.0.0-alpha.5
+          published-sdk: "true"
 
       - name: Run tests
         run: npm test
 
       - name: Check installable package
+        env:
+          COCOFAITH_SDK_FROM_REGISTRY: "1"
         run: npm run test:package
 
       - name: Publish package

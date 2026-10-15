@@ -34,7 +34,7 @@
     "koishi": "^4.16.0"
   },
   "dependencies": {
-    "cocofaith-sdk": "^3.0.0-alpha.5",
+    "cocofaith-sdk": "3.0.0-alpha.5",
     "cordis": "^3.18.1"
   },
   "devDependencies": {

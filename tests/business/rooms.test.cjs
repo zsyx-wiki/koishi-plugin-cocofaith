@@ -148,7 +148,7 @@ test('all-user numeric command requires creator, validates input and deduplicate
   } finally { await app.stop() }
 })
 
-test('SQLite room integration: unique group, atomic tickets, duplicate actions, settlement and refund', async () => {
+test('SQLite room integration: unique group, atomic tickets, duplicate actions, settlement and refund', { timeout: 15000 }, async () => {
   const app = new App()
   app.plugin(require('@minatojs/driver-sqlite').default, { path: ':memory:' })
   app.plugin(core, { gameDay: { enabled: false } })
@@ -207,8 +207,11 @@ test('SQLite room integration: unique group, atomic tickets, duplicate actions, 
     const rooms = app.faithBusiness.interfaces.use('test', 'rooms', 'default', new Set(['rooms']))
     const registration = rooms.register({
       id: 'probe',
-      async start(room) { room.deadline = Date.now() + 10 },
-      async action() { throw new Error('not your turn') },
+      async start(room) { room.deadline = Number.MAX_SAFE_INTEGER },
+      async action(room, _uid, action) {
+        if (action !== 'arm_timeout') throw new Error('not your turn')
+        room.deadline = Date.now() + 10
+      },
       async timeout(room) { room.state.count++; room.deadline = Date.now() + 10; if (room.state.count === 3) room.status = 'ended' },
       async finish(room) { room.state.settled = true },
       render(room) { return { type: 'text', content: String(room.state.count) } },
@@ -220,13 +223,18 @@ test('SQLite room integration: unique group, atomic tickets, duplicate actions, 
     await rooms.command(timed(0), 'probe', 'start')
     let refreshed = 0
     const notices = []
-    await assert.rejects(() => rooms.command({ ...timed(1), reply: async (result) => { refreshed++; if (result.broadcast) notices.push(result.broadcast); throw new Error('send failed') } }, 'probe', 'wrong'))
-    let completed
-    for (let i = 0; i < 50; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 10))
-      completed = (await app.database.get('faith_business_rooms')).find((r) => r.room.owner === 'probe')
-      if (completed?.room.status === 'ended') break
-    }
+    let announceCompletion
+    const completion = new Promise((resolve) => { announceCompletion = resolve })
+    // 错误操作与超时推进分开触发，不要求 CI 在 10ms 内完成数据库操作。
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    await assert.rejects(() => rooms.command({ ...timed(1), reply: async (result) => {
+      refreshed++
+      if (result.broadcast) { notices.push(result.broadcast); announceCompletion() }
+      throw new Error('send failed')
+    } }, 'probe', 'wrong'), { message: 'not your turn' })
+    await rooms.command({ ...timed(0), reply: undefined }, 'probe', 'arm_timeout')
+    await completion
+    const completed = (await app.database.get('faith_business_rooms')).find((r) => r.room.owner === 'probe')
     assert.equal(completed.room.state.count, 3)
     assert.equal(completed.room.state.settled, true)
     assert.equal(completed.active, false)

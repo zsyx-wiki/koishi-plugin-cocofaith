@@ -209,3 +209,21 @@ test('title service stores owned and active titles in one UID-indexed row', asyn
   assert.equal((await service.getActive(10000000)).name, '虚空收藏家')
   assert.deepEqual(row.titles, ['void-collector'])
 })
+
+test("batched prayer pricing preserves rounding at every base-price boundary", () => {
+  const config = { ...business.DEFAULT_VOID_PRAYER_CONFIG, baseCost: 47, extraCost: 83 };
+  for (const used of [0, 1, 2, 3, 4, 100]) {
+    for (const count of [1, 2, 3, 10, 1000]) {
+      for (const reduction of [0, 0.01, 0.333, 0.5, 1]) {
+        let expected = 0;
+        for (let index = 0; index < count; index++) {
+          expected += Math.round(
+            (used + index < config.baseCostDraws ? config.baseCost : config.extraCost) *
+              (1 - reduction),
+          );
+        }
+        assert.equal(business.calculateCost(used, count, config, reduction), expected);
+      }
+    }
+  }
+});

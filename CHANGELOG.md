@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [Business] 非房间玩法统一使用 Gameplay SDK，完善配置重载、跨玩法接口和初始化失败时的资源清理。
+
 ## 3.0.0-alpha.5
 
 - [Business] 内置玩法在自身入口声明，由构建收集模块和配置；命令表与业务处理分开，状态复用配置字段校验。

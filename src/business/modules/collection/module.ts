@@ -144,7 +144,9 @@ export function createCollectionGameplay() {
         },
       },
     },
-    reload() {},
+    reload() {
+      // 保留其他玩法注册的图鉴规则。
+    },
   });
 }
 

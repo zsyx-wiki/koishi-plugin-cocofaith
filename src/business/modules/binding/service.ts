@@ -1,9 +1,10 @@
-import { BINDING_MESSAGES } from "./messages";
 import type { FaithBusinessCoreScope, IdentityInput } from "cocofaith-sdk/core";
+import type { GameplayResult as BusinessResult } from "cocofaith-sdk/gameplay";
+import type { BusinessEvent } from "cocofaith-sdk/protocol";
 import { createHash, randomBytes } from "node:crypto";
 import { BusinessError } from "../../framework/errors";
-import type { BusinessEvent, BusinessResult } from "../../framework/types";
 import type { BindingConfig } from "./config";
+import { BINDING_MESSAGES } from "./messages";
 type ReplyChannel = NonNullable<BusinessEvent["reply"]>;
 type PendingState = "issued" | "claiming" | "claimed" | "confirming";
 interface PendingBinding {

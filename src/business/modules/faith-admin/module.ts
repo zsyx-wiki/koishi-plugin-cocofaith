@@ -116,7 +116,9 @@ export function createFaithAdminGameplay() {
         run: handleFaithAdmin,
       },
     },
-    reload() {},
+    reload() {
+      // 依赖玩法持有这些注册表，配置重载不能替换它们。
+    },
   });
 }
 

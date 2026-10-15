@@ -5,7 +5,6 @@ import { BusinessError } from "./errors";
 import type { BusinessCommand, BusinessModuleContext, BusinessResult, FaithBusinessModule } from "./types";
 /** 按 setup 批次管理服务与注册资源，初始化失败时一并清理。 */
 export function adaptGameplayDefinition<C extends Record<string, unknown>, S, D extends Record<string, unknown>, P extends Record<string, unknown>, A extends Record<string, unknown>>(definition: GameplayDefinition<C, S, D, P, A>): FaithBusinessModule {
-    // 模块注册表统一存储不同配置类型的玩法。
     return adaptGameplayRuntime(definition as unknown as GameplayDefinition<Record<string, unknown>, unknown>);
 }
 function adaptGameplayRuntime(definition: GameplayDefinition<Record<string, unknown>, unknown>): FaithBusinessModule {
@@ -88,7 +87,21 @@ function adaptGameplayRuntime(definition: GameplayDefinition<Record<string, unkn
         defaultConfig: definition.config?.defaults ?? {},
         validateConfig: definition.config ? value => definition.config!.parse(value) : undefined,
         init: setup,
+        ready: () => definition.ready?.(service),
         async reload(context, previousConfig) {
+            if (definition.reload) {
+                try {
+                    await definition.reload(service, context.config, previousConfig);
+                } catch (error) {
+                    try {
+                        await definition.reload(service, previousConfig, context.config);
+                    } catch (rollbackError) {
+                        throw new BusinessError("LIFECYCLE_FAILED", `玩法 ${definition.name} 重载和恢复均失败`, { module: definition.name, rollbackFailed: true }, { cause: new AggregateError([error, rollbackError]) });
+                    }
+                    throw error;
+                }
+                return;
+            }
             try {
                 await cleanup();
             }
@@ -99,10 +112,13 @@ function adaptGameplayRuntime(definition: GameplayDefinition<Record<string, unkn
             }
             try {
                 await setup(context);
+                await definition.ready?.(service);
             }
             catch (error) {
                 try {
+                    await cleanup();
                     await setup({ ...context, config: previousConfig });
+                    await definition.ready?.(service);
                 }
                 catch (rollbackError) {
                     throw new BusinessError("LIFECYCLE_FAILED", `玩法 ${definition.name} 重载和恢复均失败`, { module: definition.name, rollbackFailed: true }, { cause: new AggregateError([error, rollbackError]) });

@@ -45,7 +45,7 @@ test('default gameplay rebuild redeclares its table and recovers after failed re
 
 test('consumers and captured methods follow provider generations through reload and failed reload recovery', async () => {
   await host(async manager => {
-    let generation = 0, consumerSetups = 0, cached, captured, nested
+    let generation = 0, consumerSetups = 0, cached, captured, bound, nested
     manager.register(business.adaptGameplayDefinition(business.defineGameplay({
       name: 'provider_probe',
       setup(ctx) {
@@ -64,6 +64,7 @@ test('consumers and captured methods follow provider generations through reload 
         consumerSetups++
         cached = ctx.use('provider_probe')
         captured = cached.read
+        bound = cached.read.bind(cached)
         nested = cached.nested.read
       },
     }))
@@ -72,10 +73,14 @@ test('consumers and captured methods follow provider generations through reload 
     await manager.reload('provider_probe')
     assert.equal(cached.read(), 2)
     assert.equal(captured(), 2)
+    assert.equal(bound(), 2)
+    assert.equal(captured.call(null), 2)
+    assert.equal(captured.apply(null, []), 2)
     assert.equal(nested(), 2)
     assert.equal(consumerSetups, 1)
     await assert.rejects(manager.reload('provider_probe', { fail: true }))
     assert.equal(captured(), 4)
+    assert.equal(bound(), 4)
     assert.equal(nested(), 4)
     await manager.disable('provider_probe', true)
     assert.throws(captured, error => error.code === 'INTERFACE_NOT_FOUND')
@@ -108,7 +113,8 @@ test('provider stop and reload drain public interface calls, including rejection
     await manager.start()
     const api = manager.interfaces.use('test', 'drain_probe', 'default', new Set(['drain_probe']))
     assert.equal(api.sync(), 0)
-    const running = api.wait(false)
+    const wait = api.wait.bind(api)
+    const running = wait(false)
     await gate.started
     const reloading = manager.reload('drain_probe')
     assert.equal(manager.registry.requireRuntime('drain_probe').state, 'reloading')
@@ -120,7 +126,7 @@ test('provider stop and reload drain public interface calls, including rejection
     await reloading
     assert.equal(api.sync(), 1)
     gate = barrier()
-    const rejecting = assert.rejects(api.wait(true), /call failed/)
+    const rejecting = assert.rejects(wait(true), /call failed/)
     await gate.started
     const stopping = manager.disable('drain_probe')
     await Promise.resolve()

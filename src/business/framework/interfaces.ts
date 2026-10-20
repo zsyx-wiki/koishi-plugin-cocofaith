@@ -85,6 +85,9 @@ function createInterfaceHandle(resolve: () => { value: unknown; receiver: unknow
         get(_target, property) {
             const parent = resolve().value as object;
             const value = Reflect.get(parent, property, parent);
+            // Native helpers must bind/call this live handle, not capture a raw service method.
+            if (callable && (property === "bind" || property === "call" || property === "apply")
+                && value === Function.prototype[property]) return value;
             if (!isHandleValue(value)) return value;
             if (!children.has(property)) {
                 children.set(property, createInterfaceHandle(() => {

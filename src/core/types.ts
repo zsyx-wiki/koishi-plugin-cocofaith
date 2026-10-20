@@ -1,3 +1,5 @@
+import type { IdentityInput, FaithCoreUserData, FaithEffectRow, FaithStatusIdentityState, FaithItemDefinition, FaithOpenableDefinition, FaithOpenResult, InventoryMutation, UserValueDelta, FaithProfessionDefinition, FaithDefinition } from "cocofaith-sdk/core";
+export type { IdentityInput, FaithCoreUserData, FaithEffectRow, FaithStatusIdentityState, FaithItemDefinition, FaithOpenableDefinition, FaithOpenResult, InventoryMutation, UserValueDelta, FaithProfessionDefinition, FaithDefinition } from "cocofaith-sdk/core";
 export const UID_MIN = 10000000;
 export const UID_MAX = 99999999;
 export interface FaithCoreConfig {
@@ -26,28 +28,7 @@ export interface FaithCoreUserIdentity {
     scope: IdentityScope;
     scope_value: string;
 }
-export interface IdentityInput {
-    adapter: FaithAdapter;
-    type: IdentityType;
-    value: string;
-    scope: IdentityScope;
-    scopeValue?: string;
-}
-export interface FaithCoreUserData {
-    uid: number;
-    /** 第一个元素恒为当前信仰，后续元素为融合信仰。 */
-    faiths: string[];
-    abandon_count: number;
-    profession_id: string;
-    gold: number;
-    ascension_score: number;
-    audience_score: number;
-    audience_rank: number;
-    status: "active" | "disabled" | "closed";
-    status_reason: string;
-    created_at: Date;
-    updated_at: Date;
-}
+
 export interface FaithCoreTransactionRow {
     id: number;
     transaction_id: string;
@@ -78,19 +59,7 @@ export interface FaithPermissionGrant {
     expires_at: Date | null;
     created_at: Date;
 }
-export interface FaithEffectRow {
-    id: number;
-    owner: string;
-    target_type: "user" | "faith" | "global";
-    target: string;
-    value_type: string;
-    modifier: number;
-    fixed_bonus: number;
-    source: string;
-    starts_at: Date;
-    expires_at: Date | null;
-    metadata: Record<string, unknown>;
-}
+
 export interface FaithStatusIdentityBonus {
     type: string;
     modifier?: number;
@@ -109,15 +78,7 @@ export interface FaithStatusIdentityDefinition {
     description?: string;
     levels: readonly FaithStatusIdentityLevel[];
 }
-export interface FaithStatusIdentityState {
-    uid: number;
-    identity: string;
-    level: string;
-    active: boolean;
-    parameters: Readonly<Record<string, unknown>>;
-    version: number;
-    updated_at: Date;
-}
+
 export interface FaithStatusIdentityRow extends FaithStatusIdentityState {
     id: number;
 }
@@ -147,49 +108,11 @@ export interface FaithCoreUidSequence {
     id: number;
     next_uid: number;
 }
-export interface FaithItemDefinition {
-    item_id: string;
-    name: string;
-    type: string;
-    level: string;
-    description: string;
-    max_quantity: number;
-    marketable: boolean;
-    price: number;
-    obtainable: boolean;
-    actions?: readonly string[];
-    openable?: FaithOpenableDefinition;
-}
-export interface FaithOpenableDefinition {
-    guaranteed?: FaithOpenableCurrencyReward;
-    independentDrops?: readonly FaithOpenableIndependentDrop[];
-    randomDrop?: {
-        goldRange?: readonly [
-            number,
-            number
-        ];
-        itemCount?: number;
-        itemPool: readonly FaithOpenablePoolEntry[];
-    };
-}
-export interface FaithOpenableCurrencyReward {
-    gold?: number;
-    ascension_score?: number;
-    audience_score?: number;
-}
-export interface FaithOpenableIndependentDrop {
-    item: string;
-    chance: number;
-    quantity?: number;
-}
-export interface FaithOpenablePoolEntry {
-    level: string;
-    weight: number;
-}
-export interface FaithOpenResult {
-    currencies: Readonly<Required<FaithOpenableCurrencyReward>>;
-    items: Readonly<Record<string, number>>;
-}
+
+export type FaithOpenableCurrencyReward = NonNullable<FaithOpenableDefinition["guaranteed"]>;
+export type FaithOpenableIndependentDrop = NonNullable<FaithOpenableDefinition["independentDrops"]>[number];
+export type FaithOpenablePoolEntry = NonNullable<FaithOpenableDefinition["randomDrop"]>["itemPool"][number];
+
 export interface ItemQuery {
     type?: string;
     level?: string;
@@ -207,40 +130,7 @@ export interface InventoryStack {
     item_id: string;
     quantity: number;
 }
-export interface InventoryMutation {
-    uid: number;
-    item_id: string;
-    before: number;
-    after: number;
-    delta: number;
-}
-export interface UserValueDelta {
-    gold?: number;
-    ascension_score?: number;
-    audience_score?: number;
-    audience_rank?: number;
-    abandon_count?: number;
-}
-export interface FaithProfessionDefinition {
-    id: string;
-    name: string;
-    type: string;
-    faith: string;
-    description?: string;
-    source?: string;
-    metadata?: Readonly<Record<string, unknown>>;
-}
-export interface FaithDefinition {
-    name: string;
-    path: string;
-    type: "fixed" | "dynamic";
-    deity_name?: string;
-    creator_uid?: number;
-    believer_count: number;
-    prayer_word?: string;
-    custom_professions?: Record<string, string>;
-    metadata?: Readonly<Record<string, unknown>>;
-}
+
 export interface FaithCoreFaithRow {
     id: number;
     name: string;

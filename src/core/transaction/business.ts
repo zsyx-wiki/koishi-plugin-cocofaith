@@ -1,5 +1,8 @@
+import type { FaithAtomicScope as SdkAtomicScope, FaithAtomicDataApi } from "cocofaith-sdk/core";
+import type { FaithAtomicUsersApi as FaithAtomicUserApi, FaithAtomicItemsApi, FaithAtomicEconomyApi } from "cocofaith-sdk/core";
+export type { FaithAtomicUsersApi as FaithAtomicUserApi, FaithAtomicItemsApi, FaithAtomicEconomyApi } from "cocofaith-sdk/core";
 import type { FaithBonusService } from "../bonus";
-import type { FaithCurrency, FaithEconomyChangeResult, FaithMoney, FaithWallet } from "../economy";
+import type { FaithCurrency, FaithMoney, FaithWallet } from "../economy";
 import { FaithCoreError } from "../errors";
 import type { FaithRegistryService } from "../faith";
 import type { FaithHooksService } from "../hooks";
@@ -9,66 +12,28 @@ import { createInventoryMutation } from "../items/validation";
 import type { KeyedLockService } from "../lock";
 import type { FaithProfessionService } from "../professions";
 import type { FaithStatusIdentityService } from "../status-identities";
-import type { FaithCoreBusinessData, FaithCoreUserData, FaithStatusIdentityState, InventoryMutation, UserValueDelta } from "../types";
+import type { FaithCoreBusinessData, FaithCoreUserData, InventoryMutation, UserValueDelta } from "../types";
 import type { FaithUsersService } from "../users";
 import { normalizeFaiths } from "../users";
 import { assertBusinessName, assertUid, cloneBusinessRecord } from "../validation";
 import { atomicTable, type AtomicTableDefinition, type FaithAtomicTableApi } from "./atomic-table";
 import type { FaithAuditService, FaithTransactionOptions } from "./audit";
 import type { CoreDatabase, FaithTransactionService } from "./service";
-export interface FaithAtomicUserApi {
-    get(): Promise<FaithCoreUserData>;
-    change(delta: UserValueDelta): Promise<FaithCoreUserData>;
-    setFaiths(faiths: readonly string[]): Promise<FaithCoreUserData>;
-    abandonFaith(newFaith: string): Promise<FaithCoreUserData>;
-    setProfession(profession: string | null): Promise<FaithCoreUserData>;
-}
-export interface FaithAtomicItemsApi {
-    getQuantity(item: string): Promise<number>;
-    getStacks(): Promise<readonly import("../types").InventoryStack[]>;
-    give(item: string, quantity?: number): Promise<InventoryMutation>;
-    take(item: string, quantity?: number): Promise<InventoryMutation>;
-    setQuantity(item: string, quantity: number): Promise<InventoryMutation>;
-}
-export interface FaithAtomicBusinessDataApi {
+
+export interface FaithAtomicBusinessDataApi extends FaithAtomicDataApi {
     get(): Promise<FaithCoreBusinessData>;
     set(data: {
         private?: Record<string, unknown>;
         public?: Record<string, unknown>;
     }): Promise<FaithCoreBusinessData>;
 }
-export interface FaithAtomicStatusIdentitiesApi {
-    get(identity: string): Promise<Readonly<FaithStatusIdentityState> | null>;
-    set(identity: string, value: {
-        level: string;
-        active: boolean;
-        parameters?: Record<string, unknown>;
-    }): Promise<Readonly<FaithStatusIdentityState>>;
-}
-export interface FaithAtomicScope {
-    readonly table: FaithAtomicTableApi;
-    readonly uid: number;
-    readonly users: FaithAtomicUserApi;
-    readonly items: FaithAtomicItemsApi;
+export type FaithAtomicStatusIdentitiesApi = SdkAtomicScope["statusIdentities"];
+/** Implementation extends the SDK data view with persisted row metadata. */
+export interface FaithAtomicScope extends SdkAtomicScope {
     readonly data: FaithAtomicBusinessDataApi;
-    readonly economy: FaithAtomicEconomyApi;
-    readonly statusIdentities: FaithAtomicStatusIdentitiesApi;
-    afterCommit(callback: () => void | Promise<void>): void;
-    afterRollback(callback: (error: unknown) => void | Promise<void>): void;
 }
-export interface FaithAtomicEconomyApi {
-    getWallet(): Promise<FaithWallet>;
-    canAfford(cost: Readonly<FaithMoney>): Promise<boolean>;
-    pay(cost: Readonly<FaithMoney>): Promise<FaithCoreUserData>;
-    reward(amount: Readonly<FaithMoney>, options?: FaithAtomicRewardOptions): Promise<FaithEconomyChangeResult>;
-    /** 固定值入账，用于退款、奖池返还或已在事务外计算过加成的奖励。 */
-    creditFixed(amount: Readonly<FaithMoney>): Promise<FaithCoreUserData>;
-}
-export interface FaithAtomicRewardOptions {
-    applyBonuses?: boolean;
-    source?: string;
-    metadata?: Readonly<Record<string, unknown>>;
-}
+
+export type FaithAtomicRewardOptions = NonNullable<Parameters<FaithAtomicEconomyApi["reward"]>[1]>;
 export class FaithBusinessTransactionService {
     private inventory = new FaithInventoryRepository();
     constructor(private transactions: FaithTransactionService, private locks: KeyedLockService, private hooks: FaithHooksService, private users: FaithUsersService, private items: FaithItemsService, private professions: FaithProfessionService, private audit: FaithAuditService, private faiths: FaithRegistryService, private statusIdentitiesService: FaithStatusIdentityService, private bonuses: FaithBonusService) {

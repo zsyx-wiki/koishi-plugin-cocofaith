@@ -1,16 +1,11 @@
+import type { FaithAtomicTableApi } from "cocofaith-sdk/core";
+export type { FaithAtomicTableApi } from "cocofaith-sdk/core";
 import type { CoreDatabase } from "./service";
 export interface AtomicTableDefinition {
     name: string;
     primary: readonly string[];
 }
-export interface FaithAtomicTableApi {
-    get<T extends object = Record<string, unknown>>(query?: Record<string, unknown>): Promise<T[]>;
-    create<T extends object>(value: T): Promise<T>;
-    set(query: Record<string, unknown>, patch: Record<string, unknown>): Promise<{
-        matched?: number;
-    }>;
-    remove(query: Record<string, unknown>): Promise<unknown>;
-}
+
 export function atomicTable(database: CoreDatabase, definition: AtomicTableDefinition | undefined, active: () => void): FaithAtomicTableApi {
     const table = () => {
         active();

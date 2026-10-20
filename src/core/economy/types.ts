@@ -1,4 +1,4 @@
-export type FaithCurrency = "gold" | "ascension_score";
+export type FaithCurrency = keyof import("cocofaith-sdk/core").FaithMoney;
 export type { FaithEconomyChangeResult, FaithEconomyOptions, FaithMoney, FaithRewardOptions, FaithRewardPreview, FaithTransferResult, FaithWallet } from "cocofaith-sdk/core";
 export const FAITH_CURRENCIES = Object.freeze({
     gold: Object.freeze({ id: "gold" as const, name: "金币" }),

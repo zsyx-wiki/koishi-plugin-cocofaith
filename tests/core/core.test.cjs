@@ -87,7 +87,7 @@ test('KeyedLock serializes the same key', async () => {
   assert.equal(locks.size, 0)
 })
 
-test('Faith transactions reuse nested context and serialize SQLite roots', async () => {
+test('Faith transactions reject nesting and serialize SQLite roots', async () => {
   let begins = 0, active = 0, maximum = 0
   const database = {
     drivers: [{ constructor: { name: 'sqlite' } }],
@@ -99,7 +99,9 @@ test('Faith transactions reuse nested context and serialize SQLite roots', async
   }
   const service = new core.FaithTransactionService({ database })
   await Promise.all([
-    service.run(async () => service.run(async () => 'nested')),
+    service.run(async () => {
+      await assert.rejects(service.run(async () => 'nested'), error => error.code === 'CONFLICT')
+    }),
     service.run(async () => 'parallel'),
   ])
   assert.equal(begins, 2)

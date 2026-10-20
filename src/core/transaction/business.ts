@@ -77,6 +77,8 @@ export class FaithBusinessTransactionService {
         return this.runMany(business, [uid], async (scopes) => task(scopes.get(uid)!), options, table);
     }
     async runMany<T>(business: string, uids: readonly number[], task: (scopes: ReadonlyMap<number, FaithAtomicScope>) => Promise<T>, options: FaithTransactionOptions = {}, table?: AtomicTableDefinition): Promise<T> {
+        // Check before taking UID locks: reentering a lock would otherwise wait forever.
+        this.transactions.assertNotNested?.();
         assertBusinessName(business);
         if (table && table.name !== `faith_business_${business}`)
             throw new Error("原子事务不能访问其他业务表");

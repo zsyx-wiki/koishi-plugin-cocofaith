@@ -1,5 +1,6 @@
 import { Context } from "koishi";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { FaithCoreError } from "../errors";
 import type { FaithHooksService } from "../hooks";
 export type CoreDatabase = Context["database"];
 export class FaithTransactionService {
@@ -9,10 +10,13 @@ export class FaithTransactionService {
     private sqliteTail: Promise<unknown> = Promise.resolve();
     constructor(private ctx: Context, private hooks?: FaithHooksService) {
     }
+    /** Nested transactions have no savepoint semantics. Reuse tx or combine UIDs with runMany. */
+    assertNotNested() {
+        if (this.transactionContext.getStore())
+            throw new FaithCoreError("CONFLICT", "不支持嵌套事务；请复用当前 tx，或使用 runMany 组合多用户操作。");
+    }
     async run<T>(task: (database: CoreDatabase) => Promise<T>): Promise<T> {
-        const current = this.transactionContext.getStore();
-        if (current)
-            return task(current);
+        this.assertNotNested();
         if (this.usesSqlite()) {
             const queued = this.sqliteTail.catch(() => undefined).then(() => this.runRoot(task));
             this.sqliteTail = queued.catch(() => undefined);

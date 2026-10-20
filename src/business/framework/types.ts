@@ -97,6 +97,7 @@ export interface FaithBusinessModule<I = unknown, O = unknown, C = Record<string
   ready?(context: BusinessModuleContext<C>): void | Promise<void>;
   reload?(context: BusinessModuleContext<C>, previousConfig: Readonly<C>): void | Promise<void>;
   dispose?(context: BusinessModuleContext<C>): void | Promise<void>;
+  /** @deprecated Internal compatibility entry; prefer commands or an explicit provided interface. */
   execute?(context: BusinessExecutionContext<C>, input: I): Promise<LegacyModuleResult<O>>;
 }
 export interface BusinessModuleConfig {
@@ -115,6 +116,7 @@ export interface BusinessModuleStatus {
   dependencies: readonly string[];
   error?: string;
 }
+/** @deprecated Use defineGameplay for ordinary gameplays, or defineAdvancedGameplay for host-level modules. */
 export function defineBusinessModule<I = never, O = never, C = Record<string, unknown>>(
   module: FaithBusinessModule<I, O, C>,
 ) {

@@ -12,6 +12,7 @@ export class FaithBusinessCoreScope {
     #businessData: FaithBusinessDataService;
     #registerModel: (name: string, fields: BusinessModelFields, config?: Partial<Model.Config>) => string;
     #tableName?: string;
+    #tableDefinition?: string;
     #tablePrimary = new Set<string>();
     readonly lifecycle: FaithLifecycleScope;
     readonly runtime: Readonly<{
@@ -124,14 +125,20 @@ export class FaithBusinessCoreScope {
     registerTable(fields: BusinessModelFields, config: Partial<Model.Config> = {}) {
         if (this.lifecycle.disposed)
             throw new Error(`业务 ${this.name} 的作用域已卸载`);
-        if (this.#tableName)
-            throw new Error(`业务 ${this.name} 只能注册一张独立业务表`);
+        const definition = JSON.stringify([fields, config]);
+        if (this.#tableName) {
+            if (definition !== this.#tableDefinition)
+                throw new Error(`业务 ${this.name} 不能在运行中改变表结构`);
+            return this.#tableName;
+        }
         const primary = config.primary ?? "id";
         this.#tablePrimary = new Set(Array.isArray(primary) ? primary : [primary]);
         for (const field of this.#tablePrimary)
             if (!(field in fields))
                 throw new Error(`独立业务表缺少主键字段：${field}`);
-        return this.#tableName = this.#registerModel(this.name, fields, config);
+        const table = this.#registerModel(this.name, fields, config);
+        this.#tableDefinition = definition;
+        return this.#tableName = table;
     }
 }
 export interface FaithBusinessAtomicTransactionApi {

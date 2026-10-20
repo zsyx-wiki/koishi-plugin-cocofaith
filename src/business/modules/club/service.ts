@@ -1,3 +1,4 @@
+import type { ClubApi } from "../../contracts/gameplay";
 import type { FaithAtomicScope, FaithBusinessCoreScope, FaithStatusIdentityState } from "cocofaith-sdk/core";
 import { Logger } from "koishi";
 import { BusinessError } from "../../framework/errors";
@@ -6,7 +7,7 @@ import type { ClubConfig } from "./config";
 import { CLUB_IDENTITY_ID, CLUB_LEVELS, levelFor, qualifyingTitles } from "./data";
 import type { ClubLevel, ClubPool, ClubStats, ClubStatus, ClubTableRow } from "./types";
 const POOL_KEY = "pool";
-export class ClubService {
+export class ClubService implements ClubApi {
     private readonly logger = new Logger("cocofaith-business-club");
     constructor(private readonly core: FaithBusinessCoreScope, private readonly titles: TitleServiceApi, private config: Readonly<ClubConfig>) {
     }

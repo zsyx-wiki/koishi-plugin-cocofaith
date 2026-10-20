@@ -1,3 +1,4 @@
+export type { CollectionApi } from "../../contracts/gameplay";
 import type { InventoryMutation } from "cocofaith-sdk/core";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
@@ -12,14 +13,7 @@ import { ADMIN_COMMANDS_API, COLLECTION_API, TITLE_API } from "../../shared/cont
 import type { CollectionRule } from "./catalog";
 import { COLLECTION_MESSAGES } from "./messages";
 import { CollectionService } from "./service";
-export interface CollectionApi {
-  state: CollectionService["state"];
-  has: CollectionService["has"];
-  progress: CollectionService["progress"];
-  details: CollectionService["details"];
-  refresh: CollectionService["refresh"];
-  configure(itemId: string, rule: CollectionRule): () => void;
-}
+
 type Context = GameplayCommandContext<Record<string, never>, CollectionService>;
 
 const details = (limited: boolean) => async (ctx: Context) => {

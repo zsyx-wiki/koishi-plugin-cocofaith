@@ -1,3 +1,6 @@
+import type { BindingApi } from "../../contracts/gameplay";
+import type { BindingUserInfo } from "./types";
+export type { BindingUserInfo } from "./types";
 import type { FaithBusinessCoreScope, IdentityInput } from "cocofaith-sdk/core";
 import type { GameplayResult as BusinessResult } from "cocofaith-sdk/gameplay";
 import type { BusinessEvent } from "cocofaith-sdk/protocol";
@@ -19,12 +22,8 @@ interface PendingBinding {
   qqbotIdentity?: Readonly<IdentityInput>;
   qqbotKey?: string;
 }
-export interface BindingUserInfo {
-  adapter: string;
-  uid: number | null;
-  qqAccounts: readonly string[];
-}
-export class BindingService {
+
+export class BindingService implements BindingApi {
   private readonly pending = new Set<PendingBinding>();
   private readonly byTokenA = new Map<string, PendingBinding>();
   private readonly byTokenB = new Map<string, PendingBinding>();

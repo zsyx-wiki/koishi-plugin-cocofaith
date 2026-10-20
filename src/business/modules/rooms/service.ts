@@ -1,3 +1,4 @@
+import type { GameRoomsApi } from "../../contracts/gameplay";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { Logger } from "koishi";
 import { createHash, randomUUID } from "node:crypto";
@@ -20,8 +21,8 @@ interface RoomProgressTableRow extends Record<string, unknown> {
         progress: Record<string, unknown>;
     };
 }
-export type GameRoomsApi = Pick<GameRoomService, "register" | "create" | "command" | "progress" | "updateProgress">;
-export class GameRoomService {
+export type { GameRoomsApi } from "../../contracts/gameplay";
+export class GameRoomService implements GameRoomsApi {
     private games = new Map<string, RoomGame>();
     private rooms = new Map<string, GameRoom>();
     private queues = new Map<string, Promise<unknown>>();

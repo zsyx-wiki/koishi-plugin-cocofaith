@@ -1,3 +1,4 @@
+export type { RouletteGameplayApi } from "../../contracts/gameplay";
 import { ROULETTE_MESSAGES } from "./messages";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
@@ -8,17 +9,7 @@ import type { TitleServiceApi } from "../title";
 import { ROULETTE_CONFIG } from "./config";
 import { RouletteService } from "./service";
 import type { RouletteConfig } from "./types";
-export interface RouletteGameplayApi {
-  registerPath: RouletteService["rules"]["registerPath"];
-  registerField: RouletteService["rules"]["registerField"];
-  registerHook: RouletteService["rules"]["registerHook"];
-  stats(uid: number): ReturnType<RouletteService["stats"]>;
-  changeHonor(
-    uid: number,
-    delta: number,
-    idempotencyKey?: string,
-  ): ReturnType<RouletteService["changeHonor"]>;
-}
+
 export function createRouletteModule() {
   let service: RouletteService,
     registration: {

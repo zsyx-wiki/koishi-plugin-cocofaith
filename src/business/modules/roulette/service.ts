@@ -1,3 +1,4 @@
+import type { RouletteGameplayApi } from "../../contracts/gameplay";
 import { ROULETTE_MESSAGES } from "./messages";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessError } from "../../framework/errors";
@@ -20,7 +21,7 @@ import { renderRoulette } from "./render";
 import { settleRoulette } from "./settlement";
 import type { RouletteConfig, RouletteMode, RouletteState } from "./types";
 import { initialState, initialStats } from "./types";
-export class RouletteService implements RoomGame<RouletteState> {
+export class RouletteService implements RoomGame<RouletteState>, Pick<RouletteGameplayApi, "stats" | "changeHonor"> {
   readonly id = "roulette";
   readonly rules = new RouletteRegistry();
   private engine = new RouletteEngine(this.rules);

@@ -20,3 +20,5 @@ export { MESSAGES } from "./shared/messages";
 export type { FaithMessages } from "./shared/messages";
 export * from "./version";
 export * from "./framework/built-in";
+
+export type * from "./contracts/gameplay";

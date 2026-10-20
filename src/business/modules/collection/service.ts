@@ -1,32 +1,20 @@
+import type { CollectionApi } from "../../contracts/gameplay";
+import type { CollectionState, CollectionProgress, CollectionPage } from "./types";
+export type { CollectionState, CollectionProgress, CollectionPage } from "./types";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { Logger } from "koishi";
 import { BusinessError } from "../../framework/errors";
 import type { TitleServiceApi } from "../title";
 import { CollectionCatalog, type CollectionEntry } from "./catalog";
-export interface CollectionState {
-    uid: number;
-    items: readonly string[];
-}
-export interface CollectionProgress {
-    category: string;
-    pool: string;
-    collected: number;
-    total: number;
-}
-export interface CollectionPage {
-    page: number;
-    pages: number;
-    total: number;
-    entries: readonly (CollectionEntry & {
-        collected: boolean;
-    })[];
-}
+
+
+
 interface CollectionRow extends Record<string, unknown> {
     uid: number;
     items: string[];
     updated_at: Date;
 }
-export class CollectionService {
+export class CollectionService implements Omit<CollectionApi, "configure"> {
     readonly catalog: CollectionCatalog;
     private logger = new Logger("cocofaith-business-collection");
     private refreshing = false;

@@ -1,3 +1,4 @@
+import type { RouletteGameplayApi } from "../../contracts/gameplay";
 import { resolveProtections, type RouletteProtection } from "./protection";
 import type { RandomSource } from "./random";
 import type { RoulettePlayer, RouletteState } from "./types";
@@ -26,7 +27,7 @@ export interface RouletteRule {
     hooks?: Partial<Record<RoulettePhase, (context: RouletteEffectContext) => void>>;
     abilities?: Record<string, (context: RouletteEffectContext) => void>;
 }
-export class RouletteRegistry {
+export class RouletteRegistry implements Pick<RouletteGameplayApi, "registerPath" | "registerField" | "registerHook"> {
     private paths = new Map<string, Readonly<RouletteRule>>();
     private fields = new Map<string, Readonly<RouletteRule>>();
     private hooks: Array<{

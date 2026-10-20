@@ -1,7 +1,8 @@
+import type { DailyPrayerApi } from "../../contracts/gameplay";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessError } from "../../framework/errors";
 import type { DailyPrayerConfig, DailyPrayerResult, DailyPrayerState } from "./types";
-export class DailyPrayerService {
+export class DailyPrayerService implements DailyPrayerApi {
   constructor(
     private core: FaithBusinessCoreScope,
     private config: Readonly<DailyPrayerConfig>,

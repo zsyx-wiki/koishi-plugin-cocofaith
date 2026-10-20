@@ -1,3 +1,4 @@
+import type { VoidPrayerApi } from "../../contracts/gameplay";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessError } from "../../framework/errors";
 import { VoidPrayerPool } from "./pool";
@@ -9,7 +10,7 @@ import {
 } from "./types";
 const HIGH_LEVELS = new Set(["SS", "SSS", "SP"]);
 export type VoidPrayerAdjustment = "permanentExtra" | "temporaryExtra" | "consumableExtra";
-export class VoidPrayerService {
+export class VoidPrayerService implements VoidPrayerApi {
   private pool: VoidPrayerPool;
   constructor(
     private core: FaithBusinessCoreScope,

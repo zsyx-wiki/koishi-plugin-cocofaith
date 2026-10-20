@@ -59,13 +59,25 @@ export class BusinessModuleRuntime {
         try {
             await this.module.reload?.(this.contextCache, previousConfig);
             this.state = "ready";
+            this.error = undefined;
         }
         catch (error) {
+            let restored = false;
+            let cause = error;
+            if (!(error instanceof BusinessError && error.details?.rollbackFailed)) {
+                try {
+                    await this.module.reload?.(previousContext!, nextConfig);
+                    restored = true;
+                }
+                catch (rollbackError) {
+                    cause = new AggregateError([error, rollbackError], `业务 ${this.module.name} 重载和恢复均失败`);
+                }
+            }
             this.config = previousConfig;
             this.contextCache = previousContext;
-            this.state = error instanceof BusinessError && error.details?.rollbackFailed ? "failed" : "ready";
-            this.error = error instanceof Error ? error : new Error(String(error));
-            throw new BusinessError("LIFECYCLE_FAILED", `业务 ${this.module.name} reload 失败。`, undefined, { cause: error });
+            this.state = restored ? "ready" : "failed";
+            this.error = cause instanceof Error ? cause : new Error(String(cause));
+            throw new BusinessError("LIFECYCLE_FAILED", `业务 ${this.module.name} reload 失败。`, { rollbackFailed: !restored }, { cause });
         }
     }
     async execute<I, O>(uid: number, input: I): Promise<LegacyModuleResult<O>> {

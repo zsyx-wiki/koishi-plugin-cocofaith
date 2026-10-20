@@ -105,21 +105,7 @@ function adaptGameplayRuntime(
     ready: () => definition.ready?.(service),
     async reload(context, previousConfig) {
       if (definition.reload) {
-        try {
-          await definition.reload(service, context.config, previousConfig);
-        } catch (error) {
-          try {
-            await definition.reload(service, previousConfig, context.config);
-          } catch (rollbackError) {
-            throw new BusinessError(
-              "LIFECYCLE_FAILED",
-              `玩法 ${definition.name} 重载和恢复均失败`,
-              { module: definition.name, rollbackFailed: true },
-              { cause: new AggregateError([error, rollbackError]) },
-            );
-          }
-          throw error;
-        }
+        await definition.reload(service, context.config, previousConfig);
         return;
       }
       try {
@@ -136,24 +122,9 @@ function adaptGameplayRuntime(
           { cause },
         );
       }
-      try {
-        await setup(context);
-        await definition.ready?.(service);
-      } catch (error) {
-        try {
-          await cleanup();
-          await setup({ ...context, config: previousConfig });
-          await definition.ready?.(service);
-        } catch (rollbackError) {
-          throw new BusinessError(
-            "LIFECYCLE_FAILED",
-            `玩法 ${definition.name} 重载和恢复均失败`,
-            { module: definition.name, rollbackFailed: true },
-            { cause: new AggregateError([error, rollbackError]) },
-          );
-        }
-        throw error;
-      }
+      // Runtime owns recovery for both SDK and advanced modules.
+      await setup(context);
+      await definition.ready?.(service);
     },
     dispose: cleanup,
     commands: definition.commands.map((command) =>

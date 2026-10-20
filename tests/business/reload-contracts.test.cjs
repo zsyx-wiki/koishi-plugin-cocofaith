@@ -170,3 +170,47 @@ test('contributions and Core background hooks are drained before provider dispos
     })
   }
 })
+
+test('SDK and advanced reload failures restore service state, or fail closed if recovery fails', async () => {
+  for (const kind of ['sdk', 'advanced']) {
+    for (const failRecovery of [false, true]) {
+      await host(async manager => {
+        let service, fail = false
+        const changes = []
+        const reload = config => {
+          service.value = config.value
+          changes.push(config.value)
+          if (config.value === 2 || (fail && failRecovery)) { fail = true; throw new Error('reload failure') }
+        }
+        const module = kind === 'sdk'
+          ? business.adaptGameplayDefinition(business.defineGameplay({
+            name: 'recovery_probe',
+            setup(ctx) { service = { value: ctx.config.value }; ctx.provide('default', { read: () => service.value }); return service },
+            reload: (_service, config) => reload(config),
+            commands: { read: { triggers: ['recovery-probe'], run: () => 'ok' } },
+          }))
+          : business.defineAdvancedGameplay({
+            name: 'recovery_probe',
+            init(ctx) { service = { value: ctx.config.value }; ctx.provide('default', { read: () => service.value }) },
+            reload: ctx => reload(ctx.config),
+          })
+        manager.register(module)
+        manager.configs.update('recovery_probe', { value: 1 })
+        await manager.start()
+        const api = manager.interfaces.use('test', 'recovery_probe', 'default', new Set(['recovery_probe']))
+        await assert.rejects(manager.reload('recovery_probe', { value: 2 }), error => error.details.rollbackFailed === failRecovery)
+        assert.deepEqual(changes, [2, 1], kind)
+        const runtime = manager.registry.requireRuntime('recovery_probe')
+        assert.equal(runtime.state, failRecovery ? 'failed' : 'ready', kind)
+        if (failRecovery) {
+          assert.throws(() => api.read(), error => error.code === 'MODULE_NOT_READY')
+          assert.equal(runtime.error.errors.length, 2)
+        } else {
+          assert.equal(api.read(), 1, kind)
+          await manager.reload('recovery_probe', { value: 3 })
+          assert.equal(api.read(), 3)
+        }
+      })
+    }
+  }
+})

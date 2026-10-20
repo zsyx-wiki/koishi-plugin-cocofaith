@@ -7,7 +7,7 @@ function context(config = {}) {
 }
 const commands = { read: { triggers: ["read"], run: ({ service }) => String(service.value) } };
 
-test("in-place reload retains service and registrations and restores configuration on failure", async () => {
+test("in-place reload retains registrations and supports host-directed recovery", async () => {
   let instance,
     created = 0,
     disposed = 0,
@@ -40,6 +40,7 @@ test("in-place reload retains service and registrations and restores configurati
   await module.reload(context({ value: 2 }), { value: 1 });
   assert.equal(instance.value, 2);
   await assert.rejects(module.reload(context({ value: 3 }), { value: 2 }), /bad configuration/);
+  await module.reload(context({ value: 2 }), { value: 3 });
   assert.equal(instance.value, 2);
   assert.equal(created, 1);
   assert.equal(released, 0);
@@ -49,7 +50,7 @@ test("in-place reload retains service and registrations and restores configurati
   assert.equal(disposed, 1);
 });
 
-test("failed in-place recovery marks the module unusable", async () => {
+test("in-place reload propagates errors to its host", async () => {
   const module = adaptGameplayDefinition(
     defineGameplay({
       name: "lifecycle_probe",
@@ -63,12 +64,12 @@ test("failed in-place recovery marks the module unusable", async () => {
   await module.init(context());
   await assert.rejects(
     module.reload(context(), {}),
-    (error) => error.details.rollbackFailed === true,
+    /cannot configure/,
   );
   await module.dispose();
 });
 
-test("restart reload runs ready and cleans a failed ready before restoring the old service", async () => {
+test("restart reload runs ready and cleans failed readiness on host-directed recovery", async () => {
   const events = [];
   const module = adaptGameplayDefinition(
     defineGameplay({
@@ -90,6 +91,7 @@ test("restart reload runs ready and cleans a failed ready before restoring the o
   await module.init(context({ value: 1 }));
   await module.ready(context({ value: 1 }));
   await assert.rejects(module.reload(context({ value: 2 }), { value: 1 }), /ready failed/);
+  await module.reload(context({ value: 1 }), { value: 2 });
   assert.deepEqual(events, [
     "setup:1",
     "ready:1",

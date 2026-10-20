@@ -160,6 +160,7 @@ test('setup registrations and service are released on reload, failure and dispos
   assert.equal(registry.list().length, 1)
   assert.equal(registry.use('reload_test', 'reload_test', 'default', new Set()).reward, 2)
   await assert.rejects(module.reload(makeContext(-1), { reward: 2 }), /bad reward/)
+  await module.reload(makeContext(2), { reward: -1 }) // Recovery is coordinated by Runtime.
   assert.equal(registry.use('reload_test', 'reload_test', 'default', new Set()).reward, 2)
   await module.dispose()
   assert.equal(registry.list().length, 0)

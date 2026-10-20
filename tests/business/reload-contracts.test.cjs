@@ -83,3 +83,90 @@ test('consumers and captured methods follow provider generations through reload 
     assert.equal(captured(), 5)
   })
 })
+
+function barrier() {
+  let release, entered
+  return { wait: new Promise(resolve => { release = resolve }), started: new Promise(resolve => { entered = resolve }),
+    release: () => release(), enter: () => entered() }
+}
+
+test('provider stop and reload drain public interface calls, including rejection and synchronous methods', async () => {
+  await host(async manager => {
+    let disposed = 0, gate = barrier()
+    manager.register(business.adaptGameplayDefinition(business.defineGameplay({
+      name: 'drain_probe',
+      setup(ctx) {
+        const generation = disposed
+        ctx.provide('default', {
+          sync: () => generation,
+          async wait(fail) { gate.enter(); await gate.wait; assert.equal(disposed, generation); if (fail) throw new Error('call failed'); return generation },
+        })
+      },
+      dispose() { disposed++ },
+      commands: { read: { triggers: ['drain-probe'], run: () => 'ok' } },
+    })))
+    await manager.start()
+    const api = manager.interfaces.use('test', 'drain_probe', 'default', new Set(['drain_probe']))
+    assert.equal(api.sync(), 0)
+    const running = api.wait(false)
+    await gate.started
+    const reloading = manager.reload('drain_probe')
+    assert.equal(manager.registry.requireRuntime('drain_probe').state, 'reloading')
+    assert.throws(() => api.sync(), error => error.code === 'MODULE_NOT_READY')
+    await Promise.resolve()
+    assert.equal(disposed, 0)
+    gate.release()
+    assert.equal(await running, 0)
+    await reloading
+    assert.equal(api.sync(), 1)
+    gate = barrier()
+    const rejecting = assert.rejects(api.wait(true), /call failed/)
+    await gate.started
+    const stopping = manager.disable('drain_probe')
+    await Promise.resolve()
+    assert.equal(disposed, 1)
+    gate.release()
+    await rejecting
+    await stopping
+    assert.equal(disposed, 2)
+  })
+})
+
+test('contributions and Core background hooks are drained before provider disposal', async () => {
+  for (const source of ['contribution', 'hook', 'bonus', 'gameDay']) {
+    await host(async (manager, core) => {
+      const gate = barrier()
+      let disposed = false, scope
+      manager.register(business.adaptGameplayDefinition(business.defineGameplay({
+        name: 'background_probe',
+        setup(ctx) {
+          scope = ctx.core
+          const work = async () => { gate.enter(); await gate.wait; assert.equal(disposed, false); return [] }
+          if (source === 'contribution') ctx.contribute('probe.slot', work, { id: 'probe' })
+          if (source === 'hook') ctx.track(ctx.core.hooks.on('probe/event', work))
+          if (source === 'bonus') ctx.track(ctx.core.bonuses.registerProvider(work, { id: 'probe' }))
+          if (source === 'gameDay') ctx.core.lifecycle.onGameDay(work)
+        },
+        dispose() { disposed = true },
+        commands: { read: { triggers: ['background-probe'], run: () => 'ok' } },
+      })))
+      await manager.start()
+      let running
+      if (source === 'contribution') running = manager.contributions.collect('probe.slot', {})
+      if (source === 'hook') running = core.hooks.emit('probe/event', {})
+      if (source === 'bonus') {
+        const user = await core.faiths.registerUser({ adapter: 'onebot', type: 'qq_account', value: 'bonus-drain', scope: 'global' }, core.faiths.all()[0].name, 100)
+        running = scope.bonuses.calculate({ uid: user.uid, type: 'gold', baseValue: 1 })
+      }
+      if (source === 'gameDay') running = core.lifecycle.dispatchGameDay({ date: '2026-10-20', previousDate: null, triggeredAt: new Date(), source: 'manual' })
+      await gate.started
+      const stopping = manager.disable('background_probe')
+      await Promise.resolve()
+      assert.equal(disposed, false, source)
+      gate.release()
+      await running
+      await stopping
+      assert.equal(disposed, true, source)
+    })
+  }
+})

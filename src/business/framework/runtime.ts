@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { FaithBusinessCoreScope, FaithDisposable } from "cocofaith-sdk/core";
 import { assertFaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessContributionRegistry } from "./contributions";
@@ -14,6 +15,7 @@ export class BusinessModuleRuntime {
     private resources: FaithDisposable[] = [];
     private dependencies: ReadonlySet<string>;
     private activeExecutions = 0;
+    private executionContext = new AsyncLocalStorage<{ active: boolean }>();
     private drainWaiters = new Set<() => void>();
     constructor(readonly module: FaithBusinessModule, private configs: BusinessConfigStore, private interfaces: BusinessInterfaceRegistry, private contributions: BusinessContributionRegistry, private createCoreScope: () => FaithBusinessCoreScope) {
         this.dependencies = new Set(module.dependencies ?? []);
@@ -81,21 +83,36 @@ export class BusinessModuleRuntime {
         });
     }
     private async withExecution<T>(uid: number | null, task: (context: BusinessExecutionContext) => Promise<T>): Promise<T> {
-        this.assertReady();
-        this.activeExecutions++;
-        try {
+        return this.trackExecution(() => {
             const context = Object.create(this.contextCache!) as BusinessExecutionContext;
             Object.defineProperty(context, "uid", { value: uid, enumerable: true });
-            return await task(Object.freeze(context));
-        }
-        finally {
+            return task(Object.freeze(context));
+        });
+    }
+    /** Keep synchronous APIs synchronous, but drain promises through their actual settlement. */
+    private trackExecution<T>(task: () => T): T {
+        if (!this.executionContext.getStore()?.active) this.assertReady();
+        const token = { active: true };
+        this.activeExecutions++;
+        const finish = () => {
+            token.active = false;
             this.activeExecutions--;
             if (!this.activeExecutions) {
-                for (const resolve of this.drainWaiters)
-                    resolve();
+                for (const resolve of this.drainWaiters) resolve();
                 this.drainWaiters.clear();
             }
+        };
+        let pending = false;
+        try {
+            const result = this.executionContext.run(token, task);
+            if (result && typeof (result as unknown as PromiseLike<unknown>).then === "function") {
+                const tracked = Promise.resolve(result).finally(finish);
+                pending = true;
+                return tracked as T;
+            }
+            return result;
         }
+        finally { if (!pending) finish(); }
     }
     async stop(finalState: "disabled" | "disposed" = "disabled") {
         if (["disabled", "disposed", "registered"].includes(this.state)) {
@@ -132,24 +149,54 @@ export class BusinessModuleRuntime {
             throw new BusinessError("MODULE_NOT_READY", `业务 ${this.module.name} Core Scope 不存在。`);
         return Object.freeze({
             name: this.module.name,
-            core: this.core,
+            core: this.createOwnedCoreScope(this.core),
             config: this.config as Readonly<Record<string, unknown>>,
             provide: <T>(name: string, value: T, options?: {
                 version?: string;
             }) => {
-                const resource = this.interfaces.provide(this.module.name, name, value, options?.version);
+                const resource = this.interfaces.provide(this.module.name, name, value, options?.version, task => this.trackExecution(task));
                 this.resources = this.resources.filter(entry => !entry.disposed);
                 this.resources.push(resource);
                 return resource;
             },
             use: <T>(business: string, name = "default") => this.interfaces.use<T>(this.module.name, business, name, this.dependencies),
             contribute: <I, O>(slot: string, handler: import("./contributions").BusinessContributionHandler<I, O>, options: import("./contributions").BusinessContributionOptions) => {
-                const resource = this.contributions.register(this.module.name, slot, handler, options);
+                const resource = this.contributions.register<I, O>(this.module.name, slot, input => this.trackExecution(() => handler(input)), options);
                 this.resources = this.resources.filter(entry => !entry.disposed);
                 this.resources.push(resource);
                 return resource;
             },
             collect: <I, O>(slot: string, input: Readonly<I>) => this.contributions.collect<I, O>(slot, input),
+        });
+    }
+    private createOwnedCoreScope(core: FaithBusinessCoreScope): FaithBusinessCoreScope {
+        // These callbacks may be invoked outside a command, by another module or Core's scheduler.
+        const wrap = <T extends object>(api: T, registrations: Record<string, number>): T => new Proxy({} as T, {
+            get: (_target, key) => {
+                const target = api;
+                const value = Reflect.get(target, key, target);
+                if (typeof value !== "function") return value;
+                if (typeof key !== "string" || !Object.hasOwn(registrations, key)) return value.bind(target);
+                return (...args: unknown[]) => {
+                    const index = registrations[key];
+                    const handler = args[index];
+                    if (typeof handler === "function")
+                        args[index] = (...input: unknown[]) => this.trackExecution(() => handler(...input));
+                    return value.apply(target, args);
+                };
+            },
+        });
+        const apis = {
+            lifecycle: wrap(core.lifecycle, { onGameDay: 0, onReload: 0 }),
+            hooks: wrap(core.hooks, { on: 1 }),
+            bonuses: wrap(core.bonuses, { registerProvider: 0 }),
+        };
+        return new Proxy(core, {
+            get(target, key) {
+                if (Object.hasOwn(apis, key)) return apis[key as keyof typeof apis];
+                const value = Reflect.get(target, key, target);
+                return typeof value === "function" ? value.bind(target) : value;
+            },
         });
     }
     private assertReady() {

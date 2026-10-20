@@ -39,12 +39,14 @@ export class BusinessContributionRegistry {
             throw new BusinessError("INTERFACE_EXISTS", `扩展已注册：${slot}/${key}`);
         if (entries.size >= 256)
             throw new BusinessError("CONFLICT", `扩展槽已达到数量上限：${slot}`);
-        entries.set(key, {
+        const entry = {
             provider, id: options.id, priority: options.priority ?? 0, order: this.order++, handler: handler as BusinessContributionHandler<unknown, unknown>
-        });
+        };
+        entries.set(key, entry);
         this.slots.set(slot, entries);
         this.ordered.delete(slot);
         return new CallbackDisposable(() => {
+            if (this.slots.get(slot) !== entries || entries.get(key) !== entry) return;
             entries.delete(key);
             this.ordered.delete(slot);
             if (!entries.size)

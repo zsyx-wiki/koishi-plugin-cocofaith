@@ -23,13 +23,13 @@ export class BusinessInterfaceRegistry {
         if (this.entries.has(key))
             throw new BusinessError("INTERFACE_EXISTS", `接口已注册：${provider}.${name}`);
         const stableValue = value && typeof value === "object" ? Object.freeze(value) : value;
-        this.entries.set(key, {
-            provider, name, version, value: stableValue, invoke
-        });
+        const entry = { provider, name, version, value: stableValue, invoke };
+        this.entries.set(key, entry);
         const keys = this.providerKeys.get(provider) ?? new Set();
         keys.add(key);
         this.providerKeys.set(provider, keys);
         return new CallbackDisposable(() => {
+            if (this.entries.get(key) !== entry) return;
             this.entries.delete(key);
             keys.delete(key);
             if (!keys.size)

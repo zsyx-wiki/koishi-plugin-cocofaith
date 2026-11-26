@@ -1,3 +1,4 @@
+import { isLifecycleUnavailableError } from "../shared/lifecycle";
 import { Context } from "koishi";
 import type { FaithGameDayEvent } from "./lifecycle";
 import { CallbackDisposable } from "./lifecycle/disposable";
@@ -141,6 +142,7 @@ export class FaithHooksService {
         let value = initial;
         for (const entry of this.snapshot(event)) {
             const result = await this.invoke<T, T | void>(event, entry, value);
+            if (!result.ok && isLifecycleUnavailableError(result.error)) throw result.error;
             if (result.ok && result.value !== undefined)
                 value = result.value as T;
         }

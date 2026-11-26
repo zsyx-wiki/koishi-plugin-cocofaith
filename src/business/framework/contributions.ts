@@ -1,3 +1,4 @@
+import { isLifecycleUnavailableError } from "../../shared/lifecycle";
 import { CallbackDisposable } from "cocofaith-sdk/core";
 import { BusinessError } from "./errors";
 export type BusinessContributionHandler<I, O> = (input: Readonly<I>) => O | readonly O[] | null | undefined | Promise<O | readonly O[] | null | undefined>;
@@ -74,6 +75,8 @@ export class BusinessContributionRegistry {
         }));
         const results = settled.flatMap((item) => item.values);
         const failures = settled.flatMap((item) => item.failure ? [item.failure] : []);
+        const unavailable = failures.find((failure) => isLifecycleUnavailableError(failure.error));
+        if (unavailable) throw unavailable.error;
         return Object.freeze({ results: Object.freeze(results), failures: Object.freeze(failures) });
     }
     clear() {

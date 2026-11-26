@@ -1,3 +1,4 @@
+import { MODULE_NOT_READY } from "../../shared/lifecycle";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { FaithBusinessCoreScope, FaithDisposable } from "cocofaith-sdk/core";
 import { assertFaithBusinessCoreScope } from "cocofaith-sdk/core";
@@ -158,7 +159,7 @@ export class BusinessModuleRuntime {
     }
     private createContext(): BusinessModuleContext {
         if (!this.core)
-            throw new BusinessError("MODULE_NOT_READY", `业务 ${this.module.name} Core Scope 不存在。`);
+            throw new BusinessError(MODULE_NOT_READY, `业务 ${this.module.name} Core Scope 不存在。`);
         return Object.freeze({
             name: this.module.name,
             core: this.createOwnedCoreScope(this.core),
@@ -213,7 +214,7 @@ export class BusinessModuleRuntime {
     }
     private assertReady() {
         if (this.state !== "ready" || !this.contextCache) {
-            throw new BusinessError("MODULE_NOT_READY", `业务 ${this.module.name} 尚未就绪。`);
+            throw new BusinessError(MODULE_NOT_READY, `业务 ${this.module.name} 尚未就绪。`);
         }
     }
     private drain() {

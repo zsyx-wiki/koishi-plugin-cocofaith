@@ -1,3 +1,4 @@
+import { isLifecycleUnavailableError } from "../../shared/lifecycle";
 import type { FaithHooksService } from "../hooks";
 import { CallbackDisposable } from "../lifecycle/disposable";
 import type { FaithUsersService } from "../users";
@@ -87,14 +88,18 @@ export class FaithBonusService {
                 return { values };
             }
             catch (error) {
-                await this.hooks.emit("bonus/provider-failed", Object.freeze({
-                    provider: entry.id, uid: prepared.uid, type: prepared.type, error
-                }));
+                if (!isLifecycleUnavailableError(error))
+                    await this.hooks.emit("bonus/provider-failed", Object.freeze({
+                        provider: entry.id, uid: prepared.uid, type: prepared.type, error
+                    }));
                 return { values: [] as BonusContribution[], failure: { provider: entry.id, error } };
             }
         }));
         const contributions = settled.flatMap((item) => item.values);
         const failures = settled.flatMap((item) => item.failure ? [item.failure] : []);
+        // Settle every admitted provider before failing; never commit a reduced reward.
+        const unavailable = failures.find((failure) => isLifecycleUnavailableError(failure.error));
+        if (unavailable) throw unavailable.error;
         const extended = await this.hooks.waterfall("bonus/contributions", contributions as readonly BonusContribution[]);
         const valid = [...extended].map((item) => normalizeContribution(item, prepared.type));
         const multiplier = valid.reduce((sum, item) => sum + (item.modifier ?? 0), 1), fixedBonus = valid.reduce((sum, item) => sum + (item.fixedBonus ?? 0), 0);

@@ -82,6 +82,7 @@ export class FaithUsersService {
         });
     }
     setStatus(uid: number, status: FaithCoreUserData["status"], reason = "") {
+        this.transactions.assertNotNested();
         if (!["active", "disabled", "closed"].includes(status) || reason.length > 255)
             throw new FaithCoreError("VALIDATION_FAILED", "用户状态无效");
         return this.locks.run(`uid:${uid}`, () => this.transactions.run(async (database) => {
@@ -124,6 +125,7 @@ export class FaithUsersService {
         return user.faiths[0] ?? null;
     }
     async setFaiths(uid: number, faiths: readonly string[]) {
+        this.transactions.assertNotNested();
         const normalized = normalizeFaiths(faiths);
         if (this.faithRegistry)
             for (const faith of normalized)
@@ -155,11 +157,13 @@ export class FaithUsersService {
         return result.after;
     }
     async replaceCurrentFaith(uid: number, faith: string) {
+        this.transactions.assertNotNested();
         const user = await this.require(uid);
         const next = normalizeFaith(faith);
         return this.setFaiths(uid, [next, ...user.faiths.slice(1).filter((item) => item !== next)]);
     }
     async abandonFaith(uid: number, faith: string) {
+        this.transactions.assertNotNested();
         const next = normalizeFaith(faith);
         const result = await this.locks.run(`uid:${uid}`, () => this.transactions.run(async (database) => {
             const transactionId = await this.audit.begin(database, { source: "faith.abandon" });
@@ -195,6 +199,7 @@ export class FaithUsersService {
         return result;
     }
     async change(uid: number, delta: UserValueDelta, options: UserChangeOptions = {}) {
+        this.transactions.assertNotNested();
         this.validateDelta(delta);
         const requested = await this.hooks.waterfallStrict("user/before-values-change", Object.freeze({
             uid, delta: Object.freeze({ ...delta }), options: Object.freeze({ ...options })

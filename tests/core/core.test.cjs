@@ -11,7 +11,7 @@ test('atomic business tables stay owner-scoped and reject primary-key changes an
     remove: async (table) => { calls.push(table); return {} },
   }
   const service = new core.FaithBusinessTransactionService(
-    { run: async (task) => task(database) }, new core.KeyedLockService(),
+    { assertNotNested() {}, run: async (task) => task(database) }, new core.KeyedLockService(),
     { emit: async () => {} }, { require: async (uid) => ({ uid }) }, {}, {},
     { begin: async () => 'tx', entry: async () => {} }, {},
   )
@@ -41,7 +41,7 @@ test('atomic user scope keeps its latest snapshot across consecutive writes', as
     create: async (_table, value) => value,
   }
   const service = new core.FaithBusinessTransactionService(
-    { run: async (task) => task(database) }, new core.KeyedLockService(), { emit: async () => {} },
+    { assertNotNested() {}, run: async (task) => task(database) }, new core.KeyedLockService(), { emit: async () => {} },
     { require: async () => ({ ...row, faiths: [...row.faiths] }) }, {}, { require: () => ({}) },
     { begin: async () => 'tx', entry: async () => {} },
     { require: () => ({}), adjustBelieverCount: async () => 1, refreshCount: async () => {} },
@@ -264,6 +264,7 @@ test('bulk operations require an idempotent operation id and report skips', asyn
   const users = { listUids: async (after) => after ? [] : [10000000, 10000001] }
   const items = { require: () => ({ item_id: 'gift' }) }
   const transactions = {
+    assertNotNested() {},
     run: async (_business, uid, task) => {
       if (uid === 10000001) throw new core.FaithCoreError('IDEMPOTENCY_CONFLICT')
       return task({ users: { change: async () => ({}) }, items: { give: async () => ({}) } })
@@ -287,7 +288,7 @@ test('economy distinguishes bonus rewards from fixed payments and refunds', asyn
     get: async () => ({ ...user }),
     change: async (delta) => { user = { ...user, gold: user.gold + (delta.gold || 0), ascension_score: user.ascension_score + (delta.ascension_score || 0) }; return { ...user } },
   } }
-  const transactions = { run: async (_business, _uid, task) => task(scope) }
+  const transactions = { assertNotNested() {}, run: async (_business, _uid, task) => task(scope) }
   const users = { require: async () => ({ ...user }) }
   const calculate = async ({ uid, type, baseValue, source }) => ({ uid, type, baseValue, source, multiplier: 2, fixedBonus: 0, finalValue: baseValue * 2, contributions: [], failures: [] })
   const bonuses = { calculate, calculateForUser: async (_user, request) => calculate(request) }
@@ -344,7 +345,7 @@ test('atomic gameplay reward applies bonuses without leaving the transaction', a
     }),
   }
   const service = new core.FaithBusinessTransactionService(
-    { run: async (task) => task(database) },
+    { assertNotNested() {}, run: async (task) => task(database) },
     new core.KeyedLockService(),
     { emit: async () => {} },
     { require: async () => ({ ...row, faiths: [...row.faiths] }) },

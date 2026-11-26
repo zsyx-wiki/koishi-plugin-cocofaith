@@ -16,6 +16,7 @@ export class FaithBusinessDataService {
         ]);
         if (existing)
             return existing;
+        this.transactions.assertNotNested();
         return this.locks.run(`business-data:${business}:uid:${uid}`, () => this.transactions.run(async (database) => {
             await this.users.require(uid, database);
             const [row] = await database.get("faith_core_business", { uid, business });
@@ -38,6 +39,7 @@ export class FaithBusinessDataService {
         private?: Record<string, unknown>;
         public?: Record<string, unknown>;
     }) {
+        this.transactions.assertNotNested();
         assertBusinessName(business);
         if (data.private === undefined && data.public === undefined)
             throw new Error("业务数据更新不能为空");

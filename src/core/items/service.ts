@@ -186,6 +186,7 @@ export class FaithItemsService extends FaithItemRegistry {
         return this.mutateMany(uid, quantities, -1);
     }
     async transfer(fromUid: number, toUid: number, itemIdOrName: string, quantity = 1) {
+        this.transactions.assertNotNested();
         if (fromUid === toUid)
             throw new Error("物品转出和转入 UID 不能相同");
         assertPositiveQuantity(quantity);
@@ -211,6 +212,7 @@ export class FaithItemsService extends FaithItemRegistry {
         return { from: mutations[0], to: mutations[1] };
     }
     private async mutateOne(uid: number, itemIdOrName: string, calculate: (current: number) => number) {
+        this.transactions.assertNotNested();
         const item = this.require(itemIdOrName);
         const mutation = await this.locks.run(`uid:${uid}`, () => this.transactions.run(async (database) => {
             const transactionId = await this.audit.begin(database, { source: "items.mutate" });
@@ -225,6 +227,7 @@ export class FaithItemsService extends FaithItemRegistry {
         return mutation;
     }
     private async mutateMany(uid: number, quantities: Record<string, number>, direction: 1 | -1) {
+        this.transactions.assertNotNested();
         const entries = Object.entries(quantities);
         if (!entries.length)
             return [];

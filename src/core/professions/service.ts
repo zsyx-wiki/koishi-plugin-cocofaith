@@ -14,6 +14,7 @@ export class FaithProfessionService extends FaithProfessionRegistry {
         return user.profession_id ? this.get(user.profession_id) ?? null : null;
     }
     async setUserProfession(uid: number, profession: string | null) {
+        this.transactions.assertNotNested();
         const target = profession === null ? null : this.require(profession);
         const result = await this.locks.run(`uid:${uid}`, () => this.transactions.run(async (database) => {
             const before = await this.users.require(uid, database);

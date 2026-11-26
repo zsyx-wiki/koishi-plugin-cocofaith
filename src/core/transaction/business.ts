@@ -38,12 +38,15 @@ export class FaithBusinessTransactionService {
     private inventory = new FaithInventoryRepository();
     constructor(private transactions: FaithTransactionService, private locks: KeyedLockService, private hooks: FaithHooksService, private users: FaithUsersService, private items: FaithItemsService, private professions: FaithProfessionService, private audit: FaithAuditService, private faiths: FaithRegistryService, private statusIdentitiesService: FaithStatusIdentityService, private bonuses: FaithBonusService) {
     }
+    assertNotNested() {
+        this.transactions.assertNotNested();
+    }
     async run<T>(business: string, uid: number, task: (scope: FaithAtomicScope) => Promise<T>, options: FaithTransactionOptions = {}, table?: AtomicTableDefinition): Promise<T> {
         return this.runMany(business, [uid], async (scopes) => task(scopes.get(uid)!), options, table);
     }
     async runMany<T>(business: string, uids: readonly number[], task: (scopes: ReadonlyMap<number, FaithAtomicScope>) => Promise<T>, options: FaithTransactionOptions = {}, table?: AtomicTableDefinition): Promise<T> {
         // Check before taking UID locks: reentering a lock would otherwise wait forever.
-        this.transactions.assertNotNested?.();
+        this.assertNotNested();
         assertBusinessName(business);
         if (table && table.name !== `faith_business_${business}`)
             throw new Error("原子事务不能访问其他业务表");

@@ -22,10 +22,12 @@ export class FaithEconomyService {
         return current;
     }
     async pay(uid: number, cost: Readonly<FaithMoney>, options: FaithEconomyOptions): Promise<FaithEconomyChangeResult> {
+        this.transactions.assertNotNested();
         const requested = normalizePositiveMoney(cost, "费用");
         return this.changeFixed(uid, requested, negate(requested), options, true);
     }
     async reward(uid: number, amount: Readonly<FaithMoney>, options: FaithRewardOptions): Promise<FaithEconomyChangeResult> {
+        this.transactions.assertNotNested();
         const requested = normalizePositiveMoney(amount, "奖励");
         const preview = options.applyBonuses === false
             ? Object.freeze({
@@ -35,10 +37,12 @@ export class FaithEconomyService {
         return this.changeFixed(uid, requested, preview.applied, options, false);
     }
     refund(uid: number, amount: Readonly<FaithMoney>, options: FaithEconomyOptions) {
+        this.transactions.assertNotNested();
         const requested = normalizePositiveMoney(amount, "退款");
         return this.changeFixed(uid, requested, requested, options, false);
     }
     async transfer(fromUid: number, toUid: number, amount: Readonly<FaithMoney>, options: FaithEconomyOptions): Promise<FaithTransferResult> {
+        this.transactions.assertNotNested();
         if (fromUid === toUid)
             throw new FaithCoreError("VALIDATION_FAILED", "付款方与收款方不能相同");
         const normalized = normalizePositiveMoney(amount, "转账金额"), audit = auditOptions(options);

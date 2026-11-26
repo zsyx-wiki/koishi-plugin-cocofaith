@@ -16,6 +16,7 @@ export class FaithBulkOperationsService {
     constructor(private ctx: Context, private users: FaithUsersService, private items: FaithItemsService, private transactions: FaithBusinessTransactionService) {
     }
     changeValuesForAll(delta: Readonly<UserValueDelta>, options: FaithBulkOptions) {
+        this.transactions.assertNotNested();
         const allowed = new Set(["gold", "ascension_score", "audience_score", "audience_rank", "abandon_count"]);
         for (const [field, value] of Object.entries(delta)) {
             if (!allowed.has(field))
@@ -32,6 +33,7 @@ export class FaithBulkOperationsService {
         }));
     }
     giveItemToAll(itemIdOrName: string, quantity: number, options: FaithBulkOptions) {
+        this.transactions.assertNotNested();
         if (!Number.isSafeInteger(quantity) || quantity <= 0)
             throw new FaithCoreError("VALIDATION_FAILED", "全体物品发放数量必须是正安全整数");
         const item = this.items.require(itemIdOrName);

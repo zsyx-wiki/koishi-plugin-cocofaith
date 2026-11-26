@@ -41,6 +41,7 @@ export class FaithIdentityService {
         return work;
     }
     async createUser(input: IdentityInput, initialize?: (uid: number, database: CoreDatabase, created: boolean) => Promise<void>) {
+        this.transactions.assertNotNested();
         const normalized = normalizeIdentity(input);
         const denied = await this.hooks.bailStrict<typeof normalized, boolean>("identity/before-create-user", normalized);
         if (denied === false)
@@ -65,6 +66,7 @@ export class FaithIdentityService {
         return result.uid;
     }
     async bind(uid: number, input: IdentityInput) {
+        this.transactions.assertNotNested();
         const normalized = normalizeIdentity(input);
         const denied = await this.hooks.bailStrict("identity/before-bind", Object.freeze({ uid, identity: normalized }));
         if (denied === false)
@@ -80,6 +82,7 @@ export class FaithIdentityService {
         return this.ctx.database.get("faith_core_users", { uid }, { sort: { id: "asc" } });
     }
     async unbind(uid: number, input: IdentityInput) {
+        this.transactions.assertNotNested();
         const identity = normalizeIdentity(input);
         const removed = await this.locks.run(identityLockKey(identity), () => this.transactions.run(async (database) => {
             await this.users.require(uid, database, { allowInactive: true });

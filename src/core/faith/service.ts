@@ -34,6 +34,7 @@ export class FaithRegistryService extends FaithRegistryServiceBase {
         }
     }
     async registerUser(identity: IdentityInput, faithName: string, initialGold = this.defaultInitialGold) {
+        this.transactions?.assertNotNested();
         const faith = this.require(faithName.trim());
         if (!Number.isSafeInteger(initialGold) || initialGold < 0)
             throw new Error("初始金币必须是非负安全整数");
@@ -69,6 +70,7 @@ export class FaithRegistryService extends FaithRegistryServiceBase {
         prayerWord?: string;
         metadata?: Record<string, unknown>;
     }) {
+        this.transactions?.assertNotNested();
         const definition = await this.locks.run("faith:registry", () => this.createDynamic(input));
         await this.hooks.emit("faith/registered", definition);
         return definition;
@@ -101,6 +103,7 @@ export class FaithRegistryService extends FaithRegistryServiceBase {
     }
     /** 仅用于尚无信徒的动态信仰创建补偿；不会删除已投入使用的信仰。 */
     async unregisterDynamic(name: string, creatorUid?: number) {
+        this.transactions?.assertNotNested();
         const faith = await this.locks.run("faith:registry", () => this.removeDynamic(name, creatorUid));
         await this.hooks.emit("faith/unregistered", faith);
         return true;
@@ -123,6 +126,7 @@ export class FaithRegistryService extends FaithRegistryServiceBase {
         return faith;
     }
     async setPrayerWord(name: string, word: string, creatorUid?: number) {
+        this.transactions?.assertNotNested();
         const updated = await this.locks.run("faith:registry", () => this.updatePrayerWord(name, word, creatorUid));
         await this.hooks.emit("faith/updated", updated);
         return updated;
@@ -140,6 +144,7 @@ export class FaithRegistryService extends FaithRegistryServiceBase {
         return updated;
     }
     async setCustomProfession(name: string, type: string, professionName: string, creatorUid?: number) {
+        this.transactions?.assertNotNested();
         const updated = await this.locks.run("faith:registry", () => this.updateCustomProfession(name, type, professionName, creatorUid));
         await this.hooks.emit("faith/updated", updated);
         return updated;

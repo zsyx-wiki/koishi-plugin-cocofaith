@@ -1,3 +1,4 @@
+import { SUSPEND_BONUS_PROVIDERS } from "../../shared/lifecycle";
 import type { Context } from "koishi";
 import { Model } from "koishi";
 import type { FaithBonusService } from "../bonus";
@@ -112,6 +113,13 @@ export class FaithBusinessCoreScope {
   ) {
     assertBusinessName(name);
     this.lifecycle = lifecycle.scope(`business:${name}`);
+    Object.defineProperty(this, SUSPEND_BONUS_PROVIDERS, {
+      configurable: true,
+      value: (assertAvailable: () => void) => {
+        if (this.lifecycle.disposed) throw new Error(`业务 ${name} 的作用域已卸载`);
+        return this.lifecycle.track(bonuses.suspendOwner(`business:${name}`, assertAvailable));
+      },
+    });
     this.runtime = Object.freeze({
       ...runtime,
       capabilities: Object.freeze([...runtime.capabilities]),

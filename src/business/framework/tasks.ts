@@ -8,8 +8,12 @@ export class BusinessTasks {
 
   constructor(private readonly assertReady: () => void) {}
 
-  run<T>(task: () => T): T {
+  assertAvailable() {
     if (!this.context.getStore()?.active) this.assertReady();
+  }
+
+  run<T>(task: () => T): T {
+    this.assertAvailable();
     const token = { active: true };
     this.active++;
     const finish = () => {

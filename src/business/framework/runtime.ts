@@ -1,7 +1,7 @@
 import { ResourceList } from "../../shared/resources";
 import { BusinessTasks } from "./tasks";
 import { createOwnedCoreScope } from "./owned-scope";
-import { MODULE_NOT_READY } from "../../shared/lifecycle";
+import { MODULE_NOT_READY, suspendScopeBonusProviders } from "../../shared/lifecycle";
 import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { assertFaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessContributionRegistry } from "./contributions";
@@ -75,39 +75,46 @@ export class BusinessModuleRuntime {
     const previousContext = this.contextCache;
     const nextConfig = this.configs.resolve(this.module);
     this.state = "reloading";
-    await this.drain();
-    this.config = nextConfig;
-    this.contextCache = this.createContext();
+    const transition = suspendScopeBonusProviders(this.core!, () => this.tasks.assertAvailable());
     try {
-      await this.module.reload?.(this.contextCache, previousConfig);
-      this.state = "ready";
-      this.error = undefined;
-    } catch (error) {
-      let restored = false;
-      let cause = error;
-      if (!(error instanceof BusinessError && error.details?.rollbackFailed)) {
-        try {
-          await this.module.reload?.(previousContext!, nextConfig);
-          restored = true;
-        } catch (rollbackError) {
-          cause = new AggregateError(
-            [error, rollbackError],
-            `业务 ${this.module.name} 重载和恢复均失败`,
-          );
+      await this.drain();
+      this.config = nextConfig;
+      this.contextCache = this.createContext();
+      try {
+        await this.module.reload?.(this.contextCache, previousConfig);
+        this.state = "ready";
+        this.error = undefined;
+      } catch (error) {
+        let restored = false;
+        let cause = error;
+        if (!(error instanceof BusinessError && error.details?.rollbackFailed)) {
+          try {
+            await this.module.reload?.(previousContext!, nextConfig);
+            restored = true;
+          } catch (rollbackError) {
+            cause = new AggregateError(
+              [error, rollbackError],
+              `业务 ${this.module.name} 重载和恢复均失败`,
+            );
+          }
         }
+        this.config = previousConfig;
+        this.contextCache = previousContext;
+        this.state = restored ? "ready" : "failed";
+        this.error = cause instanceof Error ? cause : new Error(String(cause));
+        throw new BusinessError(
+          "LIFECYCLE_FAILED",
+          `业务 ${this.module.name} reload 失败。`,
+          { rollbackFailed: !restored },
+          { cause },
+        );
       }
-      this.config = previousConfig;
-      this.contextCache = previousContext;
-      this.state = restored ? "ready" : "failed";
-      this.error = cause instanceof Error ? cause : new Error(String(cause));
-      throw new BusinessError(
-        "LIFECYCLE_FAILED",
-        `业务 ${this.module.name} reload 失败。`,
-        { rollbackFailed: !restored },
-        { cause },
-      );
+    } finally {
+      // A failed runtime keeps the guard until its Core Scope is disposed.
+      if (this.state === "ready") await transition?.dispose();
     }
   }
+
   async execute<I, O>(uid: number, input: I): Promise<LegacyModuleResult<O>> {
     if (!this.module.execute)
       throw new BusinessError("NOT_ALLOWED", `业务 ${this.module.name} 不提供内部 execute 接口。`);

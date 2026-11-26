@@ -76,3 +76,22 @@ for (const mode of ['emit', 'waterfall', 'waterfallStrict']) {
     }
   })
 }
+
+for (const reset of ['removeOwner', 'clear']) {
+  test(`a stale transition disposer cannot release a replacement guard after ${reset}`, async () => {
+    const bonuses = new core.FaithBonusService({ require: async uid => ({ uid, faiths: [] }) }, new core.FaithHooksService(ctx))
+    const unavailable = () => { throw Object.assign(new Error('reloading'), { code: 'MODULE_NOT_READY' }) }
+    const register = () => bonuses.registerProvider(() => ({ source: 'test', type: 'gold', modifier: 1 }), { id: 'same', owner: 'same' })
+    register()
+    const old = bonuses.suspendOwner('same', unavailable)
+    if (reset === 'clear') bonuses.clear()
+    else bonuses.removeOwner('same')
+    register()
+    const current = bonuses.suspendOwner('same', unavailable)
+    await old.dispose()
+    const request = { uid: 10000000, type: 'gold', baseValue: 10 }
+    await assert.rejects(bonuses.calculate(request), error => error.code === 'MODULE_NOT_READY')
+    await current.dispose()
+    assert.equal((await bonuses.calculate(request)).finalValue, 20)
+  })
+}

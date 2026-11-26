@@ -195,6 +195,8 @@ export class FaithLifecycleService {
             throw new AggregateError(criticalErrors, `Faith 生命周期 ${stage} 失败`);
     }
     private async invoke(stage: FaithLifecycleStage, registration: LifecycleRegistration, payload: unknown) {
+        // The snapshot fixes order, not lifetime: an earlier awaited callback may unregister this one.
+        if (!registration.active) return;
         try {
             await registration.handler(payload);
         }

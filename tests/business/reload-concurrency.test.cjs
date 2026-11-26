@@ -88,3 +88,31 @@ test('calculation hooks and contributions propagate lifecycle rejection while or
     await faulty.dispose()
   })
 })
+
+test('Core reload skips old gameplay lifecycle closures after Business rebuilds the service', async () => {
+  await host(async (manager, core) => {
+    let generation = 0
+    const events = []
+    core.lifecycle.onReload(() => manager.reload(), { priority: -100 })
+    manager.register(business.adaptGameplayDefinition(business.defineGameplay({
+      name: 'snapshot_probe',
+      setup(ctx) {
+        const service = { generation: ++generation, disposed: false }
+        events.push(`setup:${service.generation}`)
+        ctx.core.lifecycle.onReload(() => {
+          assert.equal(service.disposed, false)
+          events.push(`reload:${service.generation}`)
+        })
+        return service
+      },
+      dispose(service) { service.disposed = true; events.push(`dispose:${service.generation}`) },
+      commands: { read: { triggers: ['snapshot-probe'], run: () => 'ok' } },
+    })))
+    await manager.start()
+    await core.lifecycle.reload()
+    assert.deepEqual(events, ['setup:1', 'dispose:1', 'setup:2'])
+    await core.lifecycle.reload()
+    assert.deepEqual(events, ['setup:1', 'dispose:1', 'setup:2', 'dispose:2', 'setup:3'])
+    assert.equal(manager.registry.requireRuntime('snapshot_probe').state, 'ready')
+  })
+})

@@ -4,7 +4,7 @@ import type {
   FaithProfessionDefinition,
   IdentityInput,
 } from "cocofaith-sdk/core";
-import { BusinessError } from "../../framework/errors";
+import { BusinessError, businessFailure } from "../../framework/errors";
 import type { FaithGameplayConfig } from "./config";
 import { FAITH_MESSAGES } from "./messages";
 export type { FaithGameplayConfig } from "./config";
@@ -24,8 +24,9 @@ export class FaithGameplayService {
     try {
       return await this.core.faiths.registerUser(identity, faith.name);
     } catch (error) {
-      if (error instanceof Error && error.message.includes("已经注册信仰"))
-        throw new BusinessError("CONFLICT", error.message);
+      const failure = businessFailure(error);
+      if (failure.code === "CONFLICT")
+        throw new BusinessError("CONFLICT", failure.message, failure.details, { cause: error });
       throw error;
     }
   }

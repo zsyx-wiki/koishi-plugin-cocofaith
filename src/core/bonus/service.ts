@@ -31,6 +31,7 @@ export class FaithBonusService {
         this.providers.set(entry.id, entry);
         this.orderedProviders = undefined;
         return new CallbackDisposable(() => {
+            if (this.providers.get(entry.id) !== entry) return;
             this.providers.delete(entry.id);
             this.orderedProviders = undefined;
         });

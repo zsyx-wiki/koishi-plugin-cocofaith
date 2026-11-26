@@ -23,7 +23,7 @@ interface RoomProgressTableRow extends Record<string, unknown> {
 }
 export type { GameRoomsApi } from "../../contracts/gameplay";
 export class GameRoomService implements GameRoomsApi {
-    private games = new Map<string, RoomGame>();
+    private games = new Map<string, { game: RoomGame }>();
     private rooms = new Map<string, GameRoom>();
     private queues = new Map<string, Promise<unknown>>();
     private timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -46,11 +46,13 @@ export class GameRoomService implements GameRoomsApi {
     register(game: RoomGame) {
         if (!/^[a-z][a-z0-9_]{0,63}$/.test(game.id) || this.games.has(game.id))
             throw new BusinessError("CONFLICT", "游戏房间类型重复或无效");
-        this.games.set(game.id, game);
+        const entry = { game };
+        this.games.set(game.id, entry);
         for (const room of this.rooms.values())
             if (room.owner === game.id)
                 this.schedule(room);
         return { dispose: async () => {
+                if (this.games.get(game.id) !== entry) return;
                 this.games.delete(game.id);
                 for (const room of this.rooms.values())
                     if (room.owner === game.id)
@@ -321,7 +323,7 @@ export class GameRoomService implements GameRoomsApi {
         this.timers.delete(key);
     }
     private requireGame(owner: string) {
-        const game = this.games.get(owner);
+        const game = this.games.get(owner)?.game;
         if (!game || this.stopped)
             throw new BusinessError("MODULE_NOT_READY");
         return game;

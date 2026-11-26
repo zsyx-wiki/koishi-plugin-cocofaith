@@ -30,6 +30,7 @@ export class FaithPermissionsService {
         policies.add(entry);
         this.policies.set(permission, policies);
         return new CallbackDisposable(() => {
+            if (this.policies.get(permission) !== policies || !policies.has(entry)) return;
             policies.delete(entry);
             if (!policies.size)
                 this.policies.delete(permission);

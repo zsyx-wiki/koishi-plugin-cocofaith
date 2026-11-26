@@ -90,12 +90,14 @@ export class FaithHooksService {
             throw new Error(`Hook 已注册：${event}/${id}`);
         if (entries.size >= 1000)
             throw new Error(`Hook ${event} 的处理器数量已达上限`);
-        entries.set(id, {
+        const entry = {
             id, owner, priority: finite(options.priority ?? 0), order: this.order, once: !!options.once, timeout, handler: handler as FaithHookHandler
-        });
+        };
+        entries.set(id, entry);
         this.handlers.set(event, entries);
         this.orderedHandlers.delete(event);
         return new CallbackDisposable(() => {
+            if (!this.isRegistered(event, entry)) return;
             this.off(event, id);
         });
     }
@@ -141,6 +143,7 @@ export class FaithHooksService {
         assertEvent(event);
         let value = initial;
         for (const entry of this.snapshot(event)) {
+            if (!this.isRegistered(event, entry)) continue;
             const result = await this.invoke<T, T | void>(event, entry, value);
             if (!result.ok && isLifecycleUnavailableError(result.error)) throw result.error;
             if (result.ok && result.value !== undefined)
@@ -152,6 +155,7 @@ export class FaithHooksService {
         assertEvent(event);
         let value = initial;
         for (const entry of this.snapshot(event)) {
+            if (!this.isRegistered(event, entry)) continue;
             const result = await this.invoke<T, T | void>(event, entry, value);
             if (!result.ok)
                 throw "error" in result ? result.error : new Error(`关键 Hook 执行失败：${event}`);
@@ -186,6 +190,7 @@ export class FaithHooksService {
         const results: R[] = [], failures: FaithHookFailure[] = [];
         let invoked = 0;
         for (const entry of this.snapshot(event)) {
+            if (!this.isRegistered(event, entry)) continue;
             invoked++;
             const result = await this.invoke<T, R>(event, entry, payload);
             if (result.ok) {
@@ -201,6 +206,9 @@ export class FaithHooksService {
         return {
             event, invoked, results, failures
         };
+    }
+    private isRegistered(event: string, entry: HookEntry) {
+        return this.handlers.get(event)?.get(entry.id) === entry;
     }
     private snapshot(event: string) {
         const cached = this.orderedHandlers.get(event);

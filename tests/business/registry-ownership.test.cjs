@@ -29,3 +29,17 @@ test('stale contribution disposers cannot remove a rebuilt slot or invalidate it
   await current.dispose()
   assert.deepEqual((await registry.collect('probe.slot', {})).results, [])
 })
+
+test('a repeatedly released room registration cannot remove a new registration of the same game object', async () => {
+  const { GameRoomService } = require('../../lib/business/index.js')
+  const rooms = new GameRoomService({ table: { get: async () => [] } })
+  const game = { id: 'reused_game' }
+  const old = rooms.register(game)
+  await old.dispose()
+  const current = rooms.register(game)
+  await old.dispose()
+  assert.deepEqual(await rooms.progress(10000000, game.id, { count: 1 }), { count: 1 })
+  await current.dispose()
+  await assert.rejects(rooms.progress(10000000, game.id, {}), error => error.code === 'MODULE_NOT_READY')
+  await rooms.close()
+})

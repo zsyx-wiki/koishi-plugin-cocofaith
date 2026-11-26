@@ -1,3 +1,4 @@
+import { ResourceList } from "../../shared/resources";
 import { Context } from "koishi";
 import { CallbackDisposable } from "./disposable";
 import { FaithLifecycleScope } from "./scope";
@@ -22,7 +23,7 @@ export class FaithLifecycleService {
   private disposing?: Promise<void>;
   private handlers = new Map<FaithLifecycleStage, Map<number, LifecycleRegistration>>();
   private scopes = new Set<FaithLifecycleScope>();
-  private resources: FaithDisposable[] = [];
+  private readonly resources = new ResourceList();
   private readonly logger;
   constructor(ctx: Context) {
     this.logger = ctx.logger("cocofaith-core-lifecycle");
@@ -107,7 +108,7 @@ export class FaithLifecycleService {
     if (this.state === "disposed" || this.state === "disposing")
       throw new Error("CoCoFaith Core 正在或已经卸载");
     const resource = typeof disposer === "function" ? new CallbackDisposable(disposer) : disposer;
-    this.resources.push(resource);
+    this.resources.track(resource);
     return resource;
   }
   init(): Promise<void> {
@@ -168,13 +169,7 @@ export class FaithLifecycleService {
         errors.push(error);
       }
     }
-    for (const resource of this.resources.splice(0).reverse()) {
-      try {
-        await resource.dispose();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
+    errors.push(...(await this.resources.release()));
     this.handlers.clear();
     this.state = "disposed";
     if (errors.length) {

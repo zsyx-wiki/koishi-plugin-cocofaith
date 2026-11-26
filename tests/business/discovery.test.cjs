@@ -206,3 +206,36 @@ test('legacy module and list values create their closures once on first use', ()
   assert.deepEqual([...list], [legacy])
   assert.equal(lists, 1)
 })
+
+test('generation rejects conflicting metadata before modifying either generated catalog', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cocofaith-config-collision-'))
+  try {
+    addGameplay(root, 'first')
+    generateGameplays(root)
+    const targets = ['src/business/modules/catalog.ts', 'src/business/config-catalog.ts']
+    const before = targets.map(file => fs.readFileSync(path.join(root, file), 'utf8'))
+    addGameplay(root, 'second')
+    fs.writeFileSync(path.join(root, 'src/business/modules/second/index.ts'), `
+      export default defineBuiltInGameplay({ name: 'first', description: 'duplicate', create: createProbe });
+    `)
+    assert.throws(() => generateGameplays(root), /名称/)
+    assert.deepEqual(targets.map(file => fs.readFileSync(path.join(root, file), 'utf8')), before)
+  } finally { fs.rmSync(root, { recursive: true, force: true }) }
+})
+
+test('configuration metadata preserves signed ordering literals', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cocofaith-config-order-'))
+  try {
+    for (const [name, order, key] of [['z-priority', -10, 'priority'], ['a-normal', 0, 'normal']]) {
+      addGameplay(root, name)
+      fs.writeFileSync(path.join(root, `src/business/modules/${name}/index.ts`), `
+        import { SETTINGS } from './config';
+        export default defineBuiltInGameplay({ name: '${name.replaceAll('-', '_')}', description: '${name}', order: ${order},
+          config: { key: '${key}', definition: SETTINGS }, create: createProbe });
+      `)
+    }
+    generateGameplays(root)
+    const config = fs.readFileSync(path.join(root, 'src/business/config-catalog.ts'), 'utf8')
+    assert.ok(config.indexOf('./modules/z-priority/config') < config.indexOf('./modules/a-normal/config'))
+  } finally { fs.rmSync(root, { recursive: true, force: true }) }
+})

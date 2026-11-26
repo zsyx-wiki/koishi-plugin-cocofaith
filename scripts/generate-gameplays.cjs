@@ -29,13 +29,22 @@ function metadata(source, directory) {
     return node.text;
   };
   const order = property(object, "order");
-  if (order && !ts.isNumericLiteral(order))
+  const signedOrder =
+    order &&
+    ts.isPrefixUnaryExpression(order) &&
+    ts.isNumericLiteral(order.operand) &&
+    [ts.SyntaxKind.MinusToken, ts.SyntaxKind.PlusToken].includes(order.operator);
+  if (order && !ts.isNumericLiteral(order) && !signedOrder)
     throw new Error(`玩法 ${directory} 的 order 必须是数字字面量`);
   const result = {
     directory,
     name: literal(property(object, "name"), "name"),
     description: literal(property(object, "description"), "description"),
-    order: order ? Number(order.text) : 1000,
+    order: signedOrder
+      ? (order.operator === ts.SyntaxKind.MinusToken ? -1 : 1) * Number(order.operand.text)
+      : order
+        ? Number(order.text)
+        : 1000,
   };
   const config = property(object, "config");
   if (!config) return result;
@@ -81,6 +90,22 @@ function generateGameplays(root = path.resolve(__dirname, "..")) {
       name,
     );
   });
+  const names = new Set();
+  const keys = new Set();
+  for (const entry of declarations) {
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(entry.name) || names.has(entry.name))
+      throw new Error(`玩法名称无效或重复：${entry.name}`);
+    if (!Number.isFinite(entry.order)) throw new Error(`玩法排序无效：${entry.name}`);
+    names.add(entry.name);
+    if (entry.key === undefined) continue;
+    if (
+      !/^[a-z][a-zA-Z0-9_]{0,63}$/.test(entry.key) ||
+      keys.has(entry.key) ||
+      ["modules", "constructor", "prototype", "__proto__"].includes(entry.key)
+    )
+      throw new Error(`配置键无效或重复：${entry.key}`);
+    keys.add(entry.key);
+  }
   const binding = (name) => name.replaceAll("-", "_");
   const content = [
     "// 由 scripts/generate-gameplays.cjs 生成，玩法声明位于各目录 index.ts。",

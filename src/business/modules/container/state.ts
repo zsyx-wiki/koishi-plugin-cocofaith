@@ -1,4 +1,4 @@
-import { BusinessError } from "../../framework/errors";
+import { assertPositiveInteger } from "./validation";
 import { DAILY_DRIP_RATES, INFUSION_RATES } from "./data";
 import type { ContainerState } from "./types";
 export function initialContainerState(): ContainerState {
@@ -55,8 +55,4 @@ export function rollDailyDivinity(random: () => number) {
     if (value < cumulative) return rate.amount;
   }
   return DAILY_DRIP_RATES.at(-1)!.amount;
-}
-export function assertPositiveInteger(value: number, label: string) {
-  if (!Number.isSafeInteger(value) || value <= 0)
-    throw new BusinessError("INVALID_INPUT", `${label}必须是正整数。`);
 }

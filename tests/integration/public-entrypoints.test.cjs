@@ -18,3 +18,11 @@ test('the gameplay entry has an explicit runtime surface without framework imple
   assert.equal(typeof old.BusinessModuleRuntime, 'function')
   assert.equal(typeof require('../../lib/core/index.js').KeyedLockService, 'function')
 })
+
+
+test('legacy compatibility exports keep their frozen names while new APIs use the explicit gameplay entry', () => {
+  const frozen = require('../fixtures/compatibility-exports.json')
+  for (const name of ['core', 'business']) {
+    assert.deepEqual(Object.keys(require(`../../lib/${name}/index.js`)).sort(), frozen[name])
+  }
+})

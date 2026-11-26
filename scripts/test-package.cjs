@@ -18,7 +18,7 @@ const sdkRoot = process.env.COCOFAITH_SDK_PATH || (fs.existsSync(path.join(root,
   ? path.join(root, '.test-deps/sdk') : path.resolve(root, '../cocofaith-sdk'))
 const sdkPackages = publishedSdk ? [] : JSON.parse(run(npm, ['pack', '--json', '--ignore-scripts', '--cache', path.join(os.tmpdir(), 'cocofaith-package-npm-cache'), '--pack-destination', workspace], sdkRoot, true)).map(item => path.join(workspace, item.filename))
 const files = packed.files.map(item => item.path)
-for (const entry of ['index', 'core/index', 'business/index']) {
+for (const entry of ['index', 'core/index', 'business/index', 'gameplay']) {
   for (const extension of ['js', 'mjs', 'd.ts', 'd.mts']) assert.ok(files.includes(`lib/${entry}.${extension}`), `missing ${entry}.${extension}`)
 }
 assert.ok(files.includes('assets/coconut-water.png'))
@@ -39,7 +39,7 @@ assert.equal(metadata.version, '${require('../package.json').version}');
 assert.deepEqual(metadata.koishi.service.required, ['database', 'faithAdapter']);
 assert.deepEqual(metadata.koishi.service.implements, ['faithCore', 'faithBusiness']);
 (async () => {
-  for (const entry of ['', '/core', '/business']) {
+  for (const entry of ['', '/core', '/business', '/gameplay']) {
     require('koishi-plugin-cocofaith' + entry);
     await import('koishi-plugin-cocofaith' + entry);
   }
@@ -70,7 +70,9 @@ fs.writeFileSync(path.join(consumer, 'consumer.ts'), `
 import type { Context } from 'koishi';
 import { Config, FaithCoreService, FaithBusinessService } from 'koishi-plugin-cocofaith';
 import { defineGameplay, defineGameplayState, defineGameplayConfig, gameplayInteger } from 'cocofaith-sdk/gameplay';
-import { defineAdvancedGameplay } from 'koishi-plugin-cocofaith/business';
+import { defineAdvancedGameplay, type ClubApi } from 'koishi-plugin-cocofaith/gameplay';
+declare const club: ClubApi;
+club.status(10000000);
 import type { FaithCoreConfig } from 'koishi-plugin-cocofaith/core';
 declare const ctx: Context;
 const core: FaithCoreService = ctx.faithCore;

@@ -1,3 +1,4 @@
+import { assertPositiveInteger } from "./validation";
 import {
   type BonusContribution,
   type FaithAtomicScope,
@@ -10,7 +11,6 @@ import type { TitleServiceApi } from "../title";
 import type { ContainerConfig } from "./config";
 import { CONTAINER_IDENTITY_ID, DIVINITY_FRAGMENT_ITEM_ID, FAITH_CONTAINER_ITEM_ID } from "./data";
 import {
-  assertPositiveInteger,
   calculateDivinityGain,
   initialContainerState,
   normalizeContainerState,

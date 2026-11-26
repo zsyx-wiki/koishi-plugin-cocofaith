@@ -205,6 +205,16 @@ test('legacy module and list values create their closures once on first use', ()
   assert.equal(list.length, 1)
   assert.deepEqual([...list], [legacy])
   assert.equal(lists, 1)
+  Object.freeze(legacy)
+  Object.freeze(list)
+  assert.ok(Object.isFrozen(legacy))
+  assert.ok(Object.isFrozen(list))
+  assert.deepEqual([...list], [legacy])
+  let frozenCreated = 0
+  const frozen = exported.lazyCompatibilityValue(() => { frozenCreated++; return Object.freeze({ name: 'frozen' }) })
+  Object.freeze(frozen)
+  assert.equal(frozen.name, 'frozen')
+  assert.equal(frozenCreated, 1)
 })
 
 test('generation rejects conflicting metadata before modifying either generated catalog', () => {

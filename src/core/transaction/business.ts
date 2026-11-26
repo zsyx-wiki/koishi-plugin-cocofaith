@@ -47,6 +47,7 @@ export interface FaithAtomicScope extends SdkAtomicScope {
 }
 
 export type FaithAtomicRewardOptions = NonNullable<Parameters<FaithAtomicEconomyApi["reward"]>[1]>;
+/** @deprecated Core 内部实现；玩法通过 SDK 业务作用域访问事务。 */
 export class FaithBusinessTransactionService {
   private inventory = new FaithInventoryRepository();
   constructor(

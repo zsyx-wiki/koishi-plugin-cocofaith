@@ -16,6 +16,7 @@ import type {
   FaithBusinessModule,
   LegacyModuleResult,
 } from "./types";
+/** @deprecated 框架内部实现；外部扩展请使用 gameplay 入口的契约。 */
 export class BusinessModuleRuntime {
   state: BusinessModuleState = "registered";
   error?: Error;

@@ -7,7 +7,7 @@ import {
   gameplayInteger,
 } from "cocofaith-sdk/gameplay";
 import { createGameplayTestHarness } from "cocofaith-sdk/testing";
-import { defineAdvancedGameplay } from "../../src/business/framework/types";
+import { defineAdvancedGameplay } from "../../src/gameplay";
 import type { FaithBusinessService } from "../../src/business/framework/service";
 
 const config = defineGameplayConfig({ amount: gameplayInteger(1) });

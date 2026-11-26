@@ -83,6 +83,11 @@
       "import": "./lib/business/index.mjs",
       "require": "./lib/business/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./gameplay": {
+      "types": "./lib/gameplay.d.ts",
+      "import": "./lib/gameplay.mjs",
+      "require": "./lib/gameplay.js"
+    }
   }
 }

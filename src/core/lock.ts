@@ -1,3 +1,4 @@
+/** @deprecated Core 内部实现；玩法通过 SDK 业务作用域访问事务。 */
 export class KeyedLockService {
     private tails = new Map<string, Promise<void>>();
     async run<T>(key: string, task: () => Promise<T>): Promise<T> {

@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { FaithCoreError } from "../errors";
 import type { FaithHooksService } from "../hooks";
 export type CoreDatabase = Context["database"];
+/** @deprecated Core 内部实现；玩法通过 SDK 业务作用域访问事务。 */
 export class FaithTransactionService {
   private sequence = 0;
   private hookDispatch = new AsyncLocalStorage<boolean>();

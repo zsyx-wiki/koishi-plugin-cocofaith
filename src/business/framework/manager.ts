@@ -8,6 +8,7 @@ import { BusinessModuleRegistry } from "./registry";
 import { BusinessCommandRouter } from "./router";
 import { BusinessModuleRuntime } from "./runtime";
 import type { Config, FaithBusinessModule } from "./types";
+/** @deprecated 框架内部实现；外部扩展请使用 gameplay 入口的契约。 */
 export class BusinessModuleManager {
   readonly registry = new BusinessModuleRegistry();
   readonly interfaces = new BusinessInterfaceRegistry();

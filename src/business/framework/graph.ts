@@ -69,6 +69,7 @@ export function enabledDependents(
     (name) => name !== target && normalizeDependencies(modules.get(name)!).includes(target),
   );
 }
+/** @deprecated 框架内部实现；外部扩展请使用 gameplay 入口的契约。 */
 export class BusinessDependencyGraph {
   private revision = 0;
   private cachedRevision = -1;

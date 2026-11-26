@@ -2,6 +2,7 @@ import { BusinessError } from "./errors";
 import { assertNoCycles, BusinessDependencyGraph, normalizeDependencies } from "./graph";
 import type { BusinessModuleRuntime } from "./runtime";
 import type { FaithBusinessModule } from "./types";
+/** @deprecated 框架内部实现；外部扩展请使用 gameplay 入口的契约。 */
 export class BusinessModuleRegistry {
   readonly modules = new Map<string, FaithBusinessModule>();
   readonly runtimes = new Map<string, BusinessModuleRuntime>();

@@ -1,24 +1,5 @@
 export { name, inject, Config, apply } from "./plugin";
 export * from "cocofaith-sdk/core";
 export * from "cocofaith-sdk/gameplay";
-export * from "./framework/contributions";
-export * from "./framework/errors";
-export * from "./framework/gameplay-adapter";
-export * from "./framework/graph";
-export * from "./framework/interfaces";
-export * from "./framework/manager";
-export * from "./framework/module-config";
-export * from "./framework/protocol";
-export * from "./framework/registry";
-export * from "./framework/router";
-export * from "./framework/runtime";
-export * from "./framework/service";
-export * from "./framework/types";
-export * from "./modules";
-export * from "./shared/contracts";
-export { MESSAGES } from "./shared/messages";
-export type { FaithMessages } from "./shared/messages";
-export * from "./version";
-export * from "./framework/built-in";
-
-export type * from "./contracts/gameplay";
+/** @deprecated 实现导出仅供兼容；新玩法使用 SDK 和 koishi-plugin-cocofaith/gameplay。 */
+export * from "./compat";

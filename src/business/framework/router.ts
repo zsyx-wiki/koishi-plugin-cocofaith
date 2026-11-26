@@ -18,6 +18,7 @@ interface CompiledCommand {
 const TOKEN_PATTERN = /"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|(\S+)/g;
 const FIRST_TOKEN_PATTERN = new RegExp(TOKEN_PATTERN.source);
 
+/** @deprecated 框架内部实现；外部扩展请使用 gameplay 入口的契约。 */
 export class BusinessCommandRouter {
   private roots = new Map<string, RegisteredRoot>();
   private byBusiness = new Map<string, string[]>();

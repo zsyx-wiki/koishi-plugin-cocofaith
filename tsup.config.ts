@@ -26,6 +26,7 @@ export const { Context, Schema, Service, Time, Logger, version } = koishi;`,
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    gameplay: "src/gameplay.ts",
     "core/index": "src/core/index.ts",
     "business/index": "src/business/index.ts",
   },

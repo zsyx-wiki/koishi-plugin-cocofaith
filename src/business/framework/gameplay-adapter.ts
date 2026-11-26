@@ -1,3 +1,4 @@
+import { ResourceList } from "../../shared/resources";
 import type { FaithDisposable, FaithLifecycleScope } from "cocofaith-sdk/core";
 import {
   GameplayError,
@@ -29,7 +30,7 @@ function adaptGameplayRuntime(
   definition: GameplayDefinition<Record<string, unknown>, unknown>,
 ): FaithBusinessModule {
   let service: unknown;
-  const resources: FaithDisposable[] = [];
+  const resources = new ResourceList();
   let initialized = false;
   const cleanup = async () => {
     const failures: unknown[] = [];
@@ -42,19 +43,12 @@ function adaptGameplayRuntime(
       }
     }
     service = undefined;
-    for (const resource of resources.splice(0).reverse()) {
-      try {
-        await resource.dispose();
-      } catch (error) {
-        failures.push(error);
-      }
-    }
+    failures.push(...(await resources.release()));
     if (failures.length) throw new AggregateError(failures, `玩法 ${definition.name} 清理失败`);
   };
   const setup = async (context: BusinessModuleContext) => {
     const track = <T extends FaithDisposable>(resource: T): T => {
-      resources.push(resource);
-      return resource;
+      return resources.track(resource);
     };
     const lifecycle = new Proxy(context.core.lifecycle, {
       get(target, key) {

@@ -1,9 +1,10 @@
+import { ResourceList } from "../../shared/resources";
 import { CallbackDisposable } from "./disposable";
 import type { FaithLifecycleService } from "./service";
 import type { FaithDisposable, FaithLifecycleHandler, LifecycleRegistrationOptions } from "./types";
 export class FaithLifecycleScope implements FaithDisposable {
   disposed = false;
-  #resources: FaithDisposable[] = [];
+  #resources = new ResourceList();
   #lifecycle: FaithLifecycleService;
   constructor(
     readonly name: string,
@@ -45,22 +46,12 @@ export class FaithLifecycleScope implements FaithDisposable {
   }
   track<T extends FaithDisposable>(resource: T): T {
     if (this.disposed) throw new Error(`生命周期作用域已卸载：${this.name}`);
-    this.#resources = this.#resources.filter((entry) => !entry.disposed);
-    if (!resource.disposed) this.#resources.push(resource);
-    return resource;
+    return this.#resources.track(resource);
   }
   async dispose() {
     if (this.disposed) return;
     this.disposed = true;
-    const resources = this.#resources.splice(0).reverse();
-    const errors: unknown[] = [];
-    for (const resource of resources) {
-      try {
-        await resource.dispose();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
+    const errors = await this.#resources.release();
     if (errors.length) throw new AggregateError(errors, `卸载生命周期作用域失败：${this.name}`);
   }
 }

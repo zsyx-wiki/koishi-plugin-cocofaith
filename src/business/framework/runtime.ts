@@ -1,6 +1,8 @@
+import { ResourceList } from "../../shared/resources";
+import { BusinessTasks } from "./tasks";
+import { createOwnedCoreScope } from "./owned-scope";
 import { MODULE_NOT_READY } from "../../shared/lifecycle";
-import { AsyncLocalStorage } from "node:async_hooks";
-import type { FaithBusinessCoreScope, FaithDisposable } from "cocofaith-sdk/core";
+import type { FaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { assertFaithBusinessCoreScope } from "cocofaith-sdk/core";
 import { BusinessContributionRegistry } from "./contributions";
 import { BusinessError } from "./errors";
@@ -23,11 +25,9 @@ export class BusinessModuleRuntime {
   private config: Readonly<unknown> = Object.freeze({});
   private core?: FaithBusinessCoreScope;
   private contextCache?: BusinessModuleContext;
-  private resources: FaithDisposable[] = [];
+  private readonly resources = new ResourceList();
   private dependencies: ReadonlySet<string>;
-  private activeExecutions = 0;
-  private executionContext = new AsyncLocalStorage<{ active: boolean }>();
-  private drainWaiters = new Set<() => void>();
+  private readonly tasks = new BusinessTasks(() => this.assertReady());
   constructor(
     readonly module: FaithBusinessModule,
     private configs: BusinessConfigStore,
@@ -145,30 +145,9 @@ export class BusinessModuleRuntime {
   }
   /** Keep synchronous APIs synchronous, but drain promises through their actual settlement. */
   private trackExecution<T>(task: () => T): T {
-    if (!this.executionContext.getStore()?.active) this.assertReady();
-    const token = { active: true };
-    this.activeExecutions++;
-    const finish = () => {
-      token.active = false;
-      this.activeExecutions--;
-      if (!this.activeExecutions) {
-        for (const resolve of this.drainWaiters) resolve();
-        this.drainWaiters.clear();
-      }
-    };
-    let pending = false;
-    try {
-      const result = this.executionContext.run(token, task);
-      if (result && typeof (result as unknown as PromiseLike<unknown>).then === "function") {
-        const tracked = Promise.resolve(result).finally(finish);
-        pending = true;
-        return tracked as T;
-      }
-      return result;
-    } finally {
-      if (!pending) finish();
-    }
+    return this.tasks.run(task);
   }
+
   async stop(finalState: "disabled" | "disposed" = "disabled") {
     if (["disabled", "disposed", "registered"].includes(this.state)) {
       this.state = finalState;
@@ -216,7 +195,7 @@ export class BusinessModuleRuntime {
       throw new BusinessError(MODULE_NOT_READY, `业务 ${this.module.name} Core Scope 不存在。`);
     return Object.freeze({
       name: this.module.name,
-      core: this.createOwnedCoreScope(this.core),
+      core: createOwnedCoreScope(this.core, (task) => this.tasks.run(task)),
       config: this.config as Readonly<Record<string, unknown>>,
       provide: <T>(
         name: string,
@@ -232,9 +211,7 @@ export class BusinessModuleRuntime {
           options?.version,
           (task) => this.trackExecution(task),
         );
-        this.resources = this.resources.filter((entry) => !entry.disposed);
-        this.resources.push(resource);
-        return resource;
+        return this.resources.track(resource);
       },
       use: <T>(business: string, name = "default") =>
         this.interfaces.use<T>(this.module.name, business, name, this.dependencies),
@@ -249,44 +226,10 @@ export class BusinessModuleRuntime {
           (input) => this.trackExecution(() => handler(input)),
           options,
         );
-        this.resources = this.resources.filter((entry) => !entry.disposed);
-        this.resources.push(resource);
-        return resource;
+        return this.resources.track(resource);
       },
       collect: <I, O>(slot: string, input: Readonly<I>) =>
         this.contributions.collect<I, O>(slot, input),
-    });
-  }
-  private createOwnedCoreScope(core: FaithBusinessCoreScope): FaithBusinessCoreScope {
-    // These callbacks may be invoked outside a command, by another module or Core's scheduler.
-    const wrap = <T extends object>(api: T, registrations: Record<string, number>): T =>
-      new Proxy({} as T, {
-        get: (_target, key) => {
-          const target = api;
-          const value = Reflect.get(target, key, target);
-          if (typeof value !== "function") return value;
-          if (typeof key !== "string" || !Object.hasOwn(registrations, key))
-            return value.bind(target);
-          return (...args: unknown[]) => {
-            const index = registrations[key];
-            const handler = args[index];
-            if (typeof handler === "function")
-              args[index] = (...input: unknown[]) => this.trackExecution(() => handler(...input));
-            return value.apply(target, args);
-          };
-        },
-      });
-    const apis = {
-      lifecycle: wrap(core.lifecycle, { onGameDay: 0, onReload: 0 }),
-      hooks: wrap(core.hooks, { on: 1 }),
-      bonuses: wrap(core.bonuses, { registerProvider: 0 }),
-    };
-    return new Proxy(core, {
-      get(target, key) {
-        if (Object.hasOwn(apis, key)) return apis[key as keyof typeof apis];
-        const value = Reflect.get(target, key, target);
-        return typeof value === "function" ? value.bind(target) : value;
-      },
     });
   }
   private assertReady() {
@@ -295,18 +238,10 @@ export class BusinessModuleRuntime {
     }
   }
   private drain() {
-    if (!this.activeExecutions) return Promise.resolve();
-    return new Promise<void>((resolve) => this.drainWaiters.add(resolve));
+    return this.tasks.drain();
   }
   private async releaseResources() {
-    const errors: unknown[] = [];
-    for (const resource of this.resources.splice(0).reverse()) {
-      try {
-        await resource.dispose();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
+    const errors = await this.resources.release();
     this.interfaces.removeProvider(this.module.name);
     try {
       await this.core?.lifecycle?.dispose?.();

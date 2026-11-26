@@ -1,3 +1,4 @@
+import { applyUserDelta, assertUserWrite, userStateQuery, userValueQuery } from "../users/mutation";
 import type { FaithAtomicScope as SdkAtomicScope, FaithAtomicDataApi } from "cocofaith-sdk/core";
 import type {
   FaithAtomicUsersApi as FaithAtomicUserApi,
@@ -226,22 +227,13 @@ export class FaithBusinessTransactionService {
       change: async (delta: UserValueDelta) => {
         ensureActive();
         const entries = Object.entries(delta);
-        if (!entries.length) throw new Error("数值变更不能为空");
         const before = currentUser();
-        const after = { ...before };
-        for (const [key, value] of entries) {
-          if (!USER_VALUE_FIELDS.has(key)) throw new Error(`不允许修改用户数值字段：${key}`);
-          if (!Number.isFinite(value)) throw new Error(`数值变更必须是有限数字：${key}`);
-          (after as unknown as Record<string, number>)[key] += value as number;
-        }
-        validateValues(after);
-        if (after.abandon_count < 0 || !Number.isSafeInteger(after.abandon_count))
-          throw new Error("弃誓次数不能为负数且必须是安全整数");
+        const after = applyUserDelta(before, delta);
         ensureActive();
         const patch = Object.fromEntries(
           entries.map(([key]) => [key, after[key as keyof UserValueDelta]]),
         );
-        await assertUserWrite(database, valueQuery(before), patch);
+        await assertUserWrite(database, userValueQuery(before), patch);
         userChanges.push({
           before,
           after,
@@ -565,13 +557,7 @@ export class FaithBusinessTransactionService {
 function cloneAtomicUser(user: FaithCoreUserData): FaithCoreUserData {
   return { ...user, faiths: [...user.faiths] };
 }
-const USER_VALUE_FIELDS = new Set([
-  "gold",
-  "ascension_score",
-  "audience_score",
-  "audience_rank",
-  "abandon_count",
-]);
+
 const ECONOMY_CURRENCIES = ["gold", "ascension_score"] as const;
 function atomicMoney(input: Readonly<FaithMoney>): Readonly<FaithMoney> {
   if (!input || typeof input !== "object" || Array.isArray(input))
@@ -601,45 +587,7 @@ function atomicWallet(user: FaithCoreUserData): FaithWallet {
 function requestedAtomicCurrencies(value: Readonly<FaithMoney>) {
   return ECONOMY_CURRENCIES.filter((currency) => value[currency] !== undefined);
 }
-function valueQuery(user: FaithCoreUserData) {
-  return {
-    uid: user.uid,
-    gold: user.gold,
-    ascension_score: user.ascension_score,
-    audience_score: user.audience_score,
-    audience_rank: user.audience_rank,
-    abandon_count: user.abandon_count,
-  };
-}
-function userStateQuery(user: FaithCoreUserData) {
-  return {
-    ...valueQuery(user),
-    profession_id: user.profession_id,
-    status: user.status,
-    status_reason: user.status_reason,
-  };
-}
-function validateValues(user: FaithCoreUserData) {
-  for (const key of USER_VALUE_FIELDS)
-    if (
-      !Number.isFinite(user[key as keyof UserValueDelta]) ||
-      Math.abs(user[key as keyof UserValueDelta]) > Number.MAX_SAFE_INTEGER
-    )
-      throw new FaithCoreError("VALIDATION_FAILED", `数值运算溢出或超出安全范围：${key}`);
-  if (!Number.isSafeInteger(user.audience_rank) || user.audience_rank < 0)
-    throw new FaithCoreError("VALIDATION_FAILED", "觐见之梯必须是非负安全整数");
-}
-async function assertUserWrite(
-  database: CoreDatabase,
-  query: Record<string, unknown>,
-  patch: Record<string, unknown>,
-) {
-  const result = await database.set("faith_core_users_data", query as never, patch as never);
-  if (result.matched !== 1)
-    throw new FaithCoreError("TRANSACTION_CONFLICT", "用户数据已被其他实例修改，请重试", {
-      uid: Number(query.uid),
-    });
-}
+
 function positive(value: number) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error("数量必须是正安全整数");
   return value;

@@ -1,3 +1,10 @@
+import {
+  applyUserDelta,
+  assertUserWrite,
+  userStateQuery,
+  userValueQuery,
+  validateDelta,
+} from "./mutation";
 import { Context } from "koishi";
 import type { FaithBonusService } from "../bonus";
 import { FaithCoreError } from "../errors";
@@ -293,7 +300,7 @@ export class FaithUsersService {
   }
   async change(uid: number, delta: UserValueDelta, options: UserChangeOptions = {}) {
     this.transactions.assertNotNested();
-    this.validateDelta(delta);
+    validateDelta(delta);
     const requested = await this.hooks.waterfallStrict(
       "user/before-values-change",
       Object.freeze({
@@ -302,7 +309,7 @@ export class FaithUsersService {
         options: Object.freeze({ ...options }),
       }),
     );
-    this.validateDelta(requested.delta);
+    validateDelta(requested.delta);
     const applied = await this.applyBonuses(uid, requested.delta, requested.options);
     const result = await this.locks.run(`uid:${uid}`, () =>
       this.transactions.run(async (database) => {
@@ -311,14 +318,7 @@ export class FaithUsersService {
           metadata: options.metadata as Record<string, unknown> | undefined,
         });
         const before = await this.require(uid, database);
-        const after: FaithCoreUserData = { ...before };
-        for (const key of Object.keys(applied) as (keyof UserValueDelta)[]) {
-          const value = applied[key];
-          if (value !== undefined) after[key] += value;
-        }
-        validateUserValues(after);
-        if (after.abandon_count < 0 || !Number.isSafeInteger(after.abandon_count))
-          throw new Error("弃誓次数不能为负数且必须是安全整数");
+        const after = applyUserDelta(before, applied);
         const patch = Object.fromEntries(
           Object.keys(applied).map((key) => [key, after[key as keyof UserValueDelta]]),
         );
@@ -374,62 +374,6 @@ export class FaithUsersService {
     }
     return applied;
   }
-  private validateDelta(delta: UserValueDelta) {
-    const entries = Object.entries(delta);
-    if (!entries.length) throw new Error("数值变更不能为空");
-    for (const [key, value] of entries) {
-      if (!USER_VALUE_FIELDS.has(key)) throw new Error(`不允许修改用户数值字段：${key}`);
-      if (!Number.isFinite(value)) throw new Error(`数值变更必须是有限数字：${key}`);
-      if ((key === "audience_rank" || key === "abandon_count") && !Number.isSafeInteger(value))
-        throw new Error(`${key} 变更必须是安全整数`);
-    }
-  }
-}
-const USER_VALUE_FIELDS = new Set([
-  "gold",
-  "ascension_score",
-  "audience_score",
-  "audience_rank",
-  "abandon_count",
-]);
-function userValueQuery(user: FaithCoreUserData) {
-  return {
-    uid: user.uid,
-    gold: user.gold,
-    ascension_score: user.ascension_score,
-    audience_score: user.audience_score,
-    audience_rank: user.audience_rank,
-    abandon_count: user.abandon_count,
-  };
-}
-function userStateQuery(user: FaithCoreUserData) {
-  return {
-    ...userValueQuery(user),
-    profession_id: user.profession_id,
-    status: user.status,
-    status_reason: user.status_reason,
-  };
-}
-function validateUserValues(user: FaithCoreUserData) {
-  for (const key of USER_VALUE_FIELDS)
-    if (
-      !Number.isFinite(user[key as keyof UserValueDelta]) ||
-      Math.abs(user[key as keyof UserValueDelta]) > Number.MAX_SAFE_INTEGER
-    )
-      throw new FaithCoreError("VALIDATION_FAILED", `数值运算溢出或超出安全范围：${key}`);
-  if (!Number.isSafeInteger(user.audience_rank) || user.audience_rank < 0)
-    throw new FaithCoreError("VALIDATION_FAILED", "觐见之梯必须是非负安全整数");
-}
-async function assertUserWrite(
-  database: CoreDatabase,
-  query: Record<string, unknown>,
-  patch: Record<string, unknown>,
-) {
-  const result = await database.set("faith_core_users_data", query as never, patch as never);
-  if (result.matched !== 1)
-    throw new FaithCoreError("TRANSACTION_CONFLICT", "用户数据已被其他实例修改，请重试", {
-      uid: Number(query.uid),
-    });
 }
 export function normalizeFaiths(faiths: readonly string[]) {
   if (!Array.isArray(faiths) || faiths.length > 64) throw new Error("信仰数组最多包含 64 项");

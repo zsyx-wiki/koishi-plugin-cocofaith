@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -96,4 +97,5 @@ export function createBindingGameplay() {
 export function createBindingModule() {
   return adaptGameplayDefinition(createBindingGameplay());
 }
-export const bindingModule = createBindingModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const bindingModule = lazyCompatibilityValue(createBindingModule);

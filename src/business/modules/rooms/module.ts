@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import { provideGameplayInterface } from "cocofaith-sdk/gameplay";
 import { defineAdvancedGameplay } from "../../framework/types";
 import { ROOMS_API } from "../../shared/contracts";
@@ -29,4 +30,5 @@ export function createRoomsModule() {
     dispose: () => rooms.close(),
   });
 }
-export const roomsModule = createRoomsModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const roomsModule = lazyCompatibilityValue(createRoomsModule);

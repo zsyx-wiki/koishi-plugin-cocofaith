@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayAtomicCommandContext, GameplaySetupContext } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -59,4 +60,5 @@ export function createJunkGameplay() {
 export function createJunkModule() {
   return adaptGameplayDefinition(createJunkGameplay());
 }
-export const junkModule = createJunkModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const junkModule = lazyCompatibilityValue(createJunkModule);

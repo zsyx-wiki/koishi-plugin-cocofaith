@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -114,7 +115,8 @@ export function createVoidPrayerGameplay() {
 export function createVoidPrayerModule() {
   return adaptGameplayDefinition(createVoidPrayerGameplay());
 }
-export const voidPrayerModule = createVoidPrayerModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const voidPrayerModule = lazyCompatibilityValue(createVoidPrayerModule);
 function parseCount(args: readonly string[]) {
   if (!args.length) return 1;
   if (args.length !== 1 || !/^\d+$/.test(args[0]))

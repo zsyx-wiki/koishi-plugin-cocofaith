@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -233,7 +234,8 @@ export function createClubGameplay() {
 export function createClubModule() {
   return adaptGameplayDefinition(createClubGameplay());
 }
-export const clubModule = createClubModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const clubModule = lazyCompatibilityValue(createClubModule);
 function parseCurrency(value: string) {
   if (value === "金币" || value === "gold") return "gold" as const;
   if (["登神分", "登神分数", "ascension_score"].includes(value)) return "ascension_score" as const;

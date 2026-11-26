@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   contributeGameplay,
@@ -174,7 +175,8 @@ export function createTitleGameplay() {
 export function createTitleModule() {
   return adaptGameplayDefinition(createTitleGameplay());
 }
-export const titleModule = createTitleModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const titleModule = lazyCompatibilityValue(createTitleModule);
 function formatBonus(value: { modifier?: number; fixedBonus?: number; detail?: string }) {
   if (value.detail) return value.detail;
   return [

@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import { ABOUT_MESSAGES } from "./messages";
 import { defineBuiltInGameplay } from "../../framework/built-in";
 import { defineGameplay } from "cocofaith-sdk/gameplay";
@@ -25,7 +26,8 @@ export function createAboutGameplay() {
 export function createAboutModule() {
   return adaptGameplayDefinition(createAboutGameplay());
 }
-export const aboutModule = createAboutModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const aboutModule = lazyCompatibilityValue(createAboutModule);
 
 export default defineBuiltInGameplay({
   name: "about",

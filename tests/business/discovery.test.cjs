@@ -10,7 +10,7 @@ const business = require("../../lib/business/index.js");
 function addGameplay(root, name) {
   const directory = path.join(root, "src/business/modules", name);
   fs.mkdirSync(directory, { recursive: true });
-  fs.writeFileSync(path.join(directory, "index.ts"), "export default defineBuiltInGameplay({});\n");
+  fs.writeFileSync(path.join(directory, "index.ts"), `export default defineBuiltInGameplay({ name: "${name.replaceAll("-", "_")}", description: "${name}", create: () => ({ name: "${name}" }) });\n`);
 }
 
 test("a gameplay is discovered from its own entry without editing central catalogs", () => {
@@ -163,3 +163,46 @@ test("a local declaration supplies runtime configuration without a second config
   store.update(module.name, { count: 0 });
   assert.throws(() => store.resolve(module), { code: "CONFIG_INVALID" });
 });
+
+test('generated configuration loads schemas without importing gameplay factories', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cocofaith-config-discovery-'))
+  try {
+    addGameplay(root, 'config-probe')
+    fs.writeFileSync(path.join(root, 'src/business/modules/config-probe/index.ts'), `
+      import { SETTINGS } from './config';
+      export default defineBuiltInGameplay({ name: 'config_probe', description: 'probe',
+        config: { key: 'probeConfig', definition: SETTINGS }, create: createProbe });
+    `)
+    generateGameplays(root)
+    const source = fs.readFileSync(path.join(root, 'src/business/config-catalog.ts'), 'utf8')
+    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+    const module = { exports: {} }
+    new Function('require', 'exports', compiled)(name => {
+      if (name === './framework/built-in') return business
+      assert.equal(name, './modules/config-probe/config', 'configuration must never load a gameplay implementation')
+      return { SETTINGS: business.defineGameplayConfig({ amount: business.gameplayInteger(7) }) }
+    }, module.exports)
+    assert.equal(module.exports.BUILT_IN_CONFIGS.probeConfig.definition.defaults.amount, 7)
+  } finally { fs.rmSync(root, { recursive: true, force: true }) }
+})
+
+test('legacy module and list values create their closures once on first use', () => {
+  const file = path.resolve(__dirname, '../../src/business/framework/compatibility.ts')
+  const compiled = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+  const exported = {}
+  new Function('exports', compiled)(exported)
+  let created = 0
+  const legacy = exported.lazyCompatibilityValue(() => { created++; return { name: 'probe', execute: () => created } })
+  assert.equal(created, 0)
+  assert.equal(legacy.name, 'probe')
+  assert.equal(legacy.execute(), 1)
+  assert.equal({ ...legacy }.name, 'probe')
+  assert.equal(created, 1)
+  let lists = 0
+  const list = exported.lazyCompatibilityValue(() => { lists++; return [legacy] }, [])
+  assert.equal(lists, 0)
+  assert.ok(Array.isArray(list))
+  assert.equal(list.length, 1)
+  assert.deepEqual([...list], [legacy])
+  assert.equal(lists, 1)
+})

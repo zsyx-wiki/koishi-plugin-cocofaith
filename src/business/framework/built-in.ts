@@ -1,7 +1,7 @@
 import type { GameplayConfigDefinition } from "cocofaith-sdk/gameplay";
 import type { FaithBusinessModule } from "./types";
 
-export interface BuiltInGameplay {
+export interface BuiltInGameplayMetadata {
   name: string;
   description: string;
   order?: number;
@@ -9,6 +9,9 @@ export interface BuiltInGameplay {
     key: string;
     definition: GameplayConfigDefinition<any>;
   };
+}
+
+export interface BuiltInGameplay extends BuiltInGameplayMetadata {
   create(): FaithBusinessModule<any, any, any>;
 }
 
@@ -54,7 +57,7 @@ export function collectBuiltInGameplays<const T extends readonly BuiltInGameplay
   );
 }
 
-type BuiltInConfigs<T extends readonly BuiltInGameplay[]> = {
+type BuiltInConfigs<T extends readonly BuiltInGameplayMetadata[]> = {
   [Entry in T[number] as Entry extends { config: { key: infer Key extends string } }
     ? Key
     : never]: Entry extends { config: { definition: infer Definition } }
@@ -62,7 +65,7 @@ type BuiltInConfigs<T extends readonly BuiltInGameplay[]> = {
     : never;
 };
 
-export function builtInConfigs<const T extends readonly BuiltInGameplay[]>(
+export function builtInConfigs<const T extends readonly BuiltInGameplayMetadata[]>(
   definitions: T,
 ): BuiltInConfigs<T> {
   return Object.fromEntries(

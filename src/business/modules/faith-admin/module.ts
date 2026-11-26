@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -125,4 +126,5 @@ export function createFaithAdminGameplay() {
 export function createFaithAdminModule() {
   return adaptGameplayDefinition(createFaithAdminGameplay());
 }
-export const faithAdminModule = createFaithAdminModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const faithAdminModule = lazyCompatibilityValue(createFaithAdminModule);

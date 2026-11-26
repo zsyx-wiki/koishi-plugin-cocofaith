@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 export type { RouletteGameplayApi } from "../../contracts/gameplay";
 import { ROULETTE_MESSAGES } from "./messages";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
@@ -120,4 +121,5 @@ export function createRouletteModule() {
     },
   });
 }
-export const rouletteModule = createRouletteModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const rouletteModule = lazyCompatibilityValue(createRouletteModule);

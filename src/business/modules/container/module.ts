@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { FaithCoreError } from "cocofaith-sdk/core";
 import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
 import { defineAdvancedGameplay } from "../../framework/types";
@@ -71,4 +72,5 @@ export function createContainerModule() {
     commands: createContainerCommands(() => service),
   });
 }
-export const containerModule = createContainerModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const containerModule = lazyCompatibilityValue(createContainerModule);

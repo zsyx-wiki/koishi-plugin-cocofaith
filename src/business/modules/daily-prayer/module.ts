@@ -1,3 +1,4 @@
+import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import {
   defineGameplay,
@@ -79,7 +80,8 @@ export function createDailyPrayerGameplay() {
 export function createDailyPrayerModule() {
   return adaptGameplayDefinition(createDailyPrayerGameplay());
 }
-export const dailyPrayerModule = createDailyPrayerModule();
+/** @deprecated 兼容单例；新代码通过玩法声明按需创建模块。 */
+export const dailyPrayerModule = lazyCompatibilityValue(createDailyPrayerModule);
 function formatResult(result: DailyPrayerResult) {
   return DAILY_PRAYER_MESSAGES.result(
     result.god,

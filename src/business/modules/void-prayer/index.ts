@@ -14,3 +14,5 @@ export default defineBuiltInGameplay({
   config: { key: "voidPrayer", definition: VOID_PRAYER_CONFIG },
   create: createVoidPrayerModule,
 });
+
+export type * from "./api";

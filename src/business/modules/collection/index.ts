@@ -10,3 +10,5 @@ export default defineBuiltInGameplay({
   order: 90,
   create: createCollectionModule,
 });
+
+export type * from "./api";

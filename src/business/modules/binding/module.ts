@@ -7,7 +7,7 @@ import {
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { BINDING_API } from "../../shared/contracts";
+import { BINDING_API } from "../../contracts/tokens";
 import { BINDING_CONFIG, type BindingConfig } from "./config";
 import { BINDING_MESSAGES } from "./messages";
 import { BindingService } from "./service";

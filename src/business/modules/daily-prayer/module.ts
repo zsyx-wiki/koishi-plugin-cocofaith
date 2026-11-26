@@ -8,7 +8,7 @@ import {
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { ADMIN_FIELDS_API, DAILY_PRAYER_API } from "../../shared/contracts";
+import { ADMIN_FIELDS_API, DAILY_PRAYER_API } from "../../contracts/tokens";
 import { DAILY_PRAYER_CONFIG } from "./config";
 import { DAILY_PRAYER_MESSAGES } from "./messages";
 import { DailyPrayerService } from "./service";

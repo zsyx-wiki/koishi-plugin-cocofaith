@@ -1,32 +1,11 @@
+import type { RouletteRule, RoulettePhase, RouletteEffectContext } from "./api";
+export type { RoulettePhase, RouletteEffectContext, RouletteRule } from "./api";
 import type { RouletteGameplayApi } from "../../contracts/gameplay";
 import { resolveProtections, type RouletteProtection } from "./protection";
-import type { RandomSource } from "./random";
-import type { RoulettePlayer, RouletteState } from "./types";
-export type RoulettePhase = "start" | "reload" | "beforeShot" | "bullet" | "empty" | "afterShot" | "death";
-export interface RouletteEffectContext {
-    state: RouletteState;
-    actor: RoulettePlayer;
-    target: RoulettePlayer;
-    random: RandomSource;
-    damage: number;
-    cancelled: boolean;
-    bullet: boolean;
-    messages: string[];
-    tags: Set<string>;
-    kill(player: RoulettePlayer, reason: string, forced?: boolean): void;
-    addBullet(): void;
-    addEmpty(): void;
-}
-export interface RouletteRule {
-    id: string;
-    name: string;
-    description: string;
-    modes?: readonly ("gambler" | "crazy")[];
-    savesAsShields?: boolean;
-    protections?: readonly RouletteProtection[];
-    hooks?: Partial<Record<RoulettePhase, (context: RouletteEffectContext) => void>>;
-    abilities?: Record<string, (context: RouletteEffectContext) => void>;
-}
+
+
+
+
 export class RouletteRegistry implements Pick<RouletteGameplayApi, "registerPath" | "registerField" | "registerHook"> {
     private paths = new Map<string, Readonly<RouletteRule>>();
     private fields = new Map<string, Readonly<RouletteRule>>();

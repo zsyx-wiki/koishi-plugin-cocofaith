@@ -5,7 +5,7 @@ import type { GameplayOutput } from "cocofaith-sdk/gameplay";
 import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
 import type { BusinessCommandContext } from "../../framework/types";
 import { defineAdvancedGameplay } from "../../framework/types";
-import { ROOMS_API, ROULETTE_API, TITLE_API } from "../../shared/contracts";
+import { ROOMS_API, ROULETTE_API, TITLE_API } from "../../contracts/tokens";
 import type { TitleServiceApi } from "../title";
 import { ROULETTE_CONFIG } from "./config";
 import { RouletteService } from "./service";

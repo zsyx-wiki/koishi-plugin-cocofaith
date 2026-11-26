@@ -9,7 +9,7 @@ import {
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { FAITH_BEFORE_ABANDON, FAITH_INFO, FAITH_REGISTRY_API } from "../../shared/contracts";
+import { FAITH_BEFORE_ABANDON, FAITH_INFO, FAITH_REGISTRY_API } from "../../contracts/tokens";
 import { formatItem } from "../../shared/item-format";
 import { FAITH_CONFIG } from "./config";
 import { FAITH_MESSAGES } from "./messages";

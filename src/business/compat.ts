@@ -13,7 +13,7 @@ export * from "./framework/runtime";
 export * from "./framework/service";
 export * from "./framework/types";
 export * from "./modules";
-export * from "./shared/contracts";
+export * from "./contracts/tokens";
 export { MESSAGES } from "./shared/messages";
 export type { FaithMessages } from "./shared/messages";
 export * from "./version";

@@ -14,7 +14,18 @@ export type { BusinessEvent, BusinessDispatchResult } from "cocofaith-sdk/protoc
 export type { GameplayResult } from "cocofaith-sdk/gameplay";
 export type * from "./business/contracts/gameplay";
 export {
-  TITLE_API, ROOMS_API, ROULETTE_API, ADMIN_FIELDS_API, ADMIN_COMMANDS_API,
-  FAITH_INFO, FAITH_BEFORE_ABANDON, BINDING_API, CLUB_API, DAILY_PRAYER_API,
-  VOID_PRAYER_API, COLLECTION_API, CONTAINER_API, FAITH_REGISTRY_API,
-} from "./business/shared/contracts";
+  TITLE_API,
+  ROOMS_API,
+  ROULETTE_API,
+  ADMIN_FIELDS_API,
+  ADMIN_COMMANDS_API,
+  FAITH_INFO,
+  FAITH_BEFORE_ABANDON,
+  BINDING_API,
+  CLUB_API,
+  DAILY_PRAYER_API,
+  VOID_PRAYER_API,
+  COLLECTION_API,
+  CONTAINER_API,
+  FAITH_REGISTRY_API,
+} from "./business/contracts/tokens";

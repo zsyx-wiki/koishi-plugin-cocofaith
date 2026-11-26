@@ -18,3 +18,5 @@ export default defineBuiltInGameplay({
   config: { key: "roulette", definition: ROULETTE_CONFIG },
   create: createRouletteModule,
 });
+
+export type * from "./api";

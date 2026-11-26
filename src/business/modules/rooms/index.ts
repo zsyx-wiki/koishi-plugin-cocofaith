@@ -10,3 +10,5 @@ export default defineBuiltInGameplay({
   order: 60,
   create: createRoomsModule,
 });
+
+export type * from "./api";

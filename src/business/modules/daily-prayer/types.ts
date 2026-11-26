@@ -1,11 +1,6 @@
+export type { DailyPrayerState } from "./api";
 export type { DailyPrayerConfig } from "./config";
-export interface DailyPrayerState {
-    date: string;
-    count: number;
-    permanentExtra: number;
-    temporaryExtra: number;
-    temporaryDate: string;
-}
+
 export interface DailyPrayerResult {
     faith: string;
     god: string;

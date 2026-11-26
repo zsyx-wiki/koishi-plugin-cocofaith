@@ -12,3 +12,5 @@ export default defineBuiltInGameplay({
   config: { key: "binding", definition: BINDING_CONFIG },
   create: createBindingModule,
 });
+
+export type * from "./api";

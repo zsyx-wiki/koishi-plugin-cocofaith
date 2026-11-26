@@ -8,7 +8,7 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API } from "../../shared/contracts";
+import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API } from "../../contracts/tokens";
 import { ADMIN_MESSAGES } from "./messages";
 import { FaithAdminService } from "./service";
 type Context = GameplayCommandContext<Record<string, never>, FaithAdminService, number | null>;

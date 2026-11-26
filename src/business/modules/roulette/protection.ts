@@ -1,12 +1,7 @@
-import type { RouletteEffectContext } from "./registry";
-export interface RouletteProtection {
-    id: string;
-    kind: "shield" | "save";
-    fallback?: boolean;
-    available(context: RouletteEffectContext): number;
-    probability(context: RouletteEffectContext): number;
-    consume(context: RouletteEffectContext, layers: number): void;
-}
+import type { RouletteProtection } from "./api";
+export type { RouletteProtection } from "./api";
+import type { RouletteEffectContext } from "./api";
+
 export function resolveProtections(context: RouletteEffectContext, sources: readonly RouletteProtection[], savesAsShields: boolean) {
     const seen = new Set<string>();
     const ordered = sources.map((source, index) => ({ source, index }))

@@ -9,7 +9,7 @@ import {
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { ADMIN_COMMANDS_API, FAITH_INFO, TITLE_API } from "../../shared/contracts";
+import { ADMIN_COMMANDS_API, FAITH_INFO, TITLE_API } from "../../contracts/tokens";
 import { BUILTIN_TITLES } from "./data";
 import { TITLE_MESSAGES } from "./messages";
 import { TitleService } from "./service";

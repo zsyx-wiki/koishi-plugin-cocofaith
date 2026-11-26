@@ -13,3 +13,5 @@ export default defineBuiltInGameplay({
   config: { key: "dailyPrayer", definition: DAILY_PRAYER_CONFIG },
   create: createDailyPrayerModule,
 });
+
+export type * from "./api";

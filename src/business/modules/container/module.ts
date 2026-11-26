@@ -2,7 +2,7 @@ import { lazyCompatibilityValue } from "../../framework/compatibility";
 import type { FaithCoreError } from "cocofaith-sdk/core";
 import { provideGameplayInterface, useGameplayInterface } from "cocofaith-sdk/gameplay";
 import { defineAdvancedGameplay } from "../../framework/types";
-import { CONTAINER_API, ROULETTE_API, TITLE_API } from "../../shared/contracts";
+import { CONTAINER_API, ROULETTE_API, TITLE_API } from "../../contracts/tokens";
 import { registerContainerAdmin } from "./admin";
 import { createContainerCommands } from "./commands";
 import { CONTAINER_CONFIG, type ContainerConfig } from "./config";

@@ -1,7 +1,7 @@
 import { useGameplayInterface } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import type { BusinessModuleContext } from "../../framework/types";
-import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API } from "../../shared/contracts";
+import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API } from "../../contracts/tokens";
 import type { ContainerConfig } from "./config";
 import { containerText } from "./messages";
 import type { ContainerService } from "./service";

@@ -26,3 +26,19 @@ test('Core and Business depend on public contracts without importing each other'
     }
   }
 })
+
+test('public gameplay contracts depend on SDK or other public API files, never implementations', () => {
+  const root = path.resolve(__dirname, '../../src/business')
+  const files = [...sources(path.join(root, 'contracts'))]
+  for (const file of sources(path.join(root, 'modules'))) {
+    if (path.basename(file) === 'api.ts') files.push(file)
+  }
+  for (const file of files) {
+    const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
+    for (const statement of source.statements) {
+      const name = statement.moduleSpecifier?.text
+      if (!name?.startsWith('.')) continue
+      assert.ok(name.endsWith('/api') || path.resolve(path.dirname(file), name) === path.join(root, 'contracts/gameplay'), `${file} references implementation ${name}`)
+    }
+  }
+})

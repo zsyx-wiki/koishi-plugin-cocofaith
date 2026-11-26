@@ -1,16 +1,10 @@
+export type { VoidPrayerState } from "./api";
 import type { FaithItemDefinition } from "cocofaith-sdk/core";
-export const VOID_PRAYER_LEVELS = ["SP", "SSS", "SS", "S", "A", "B", "C", "D"] as const;
 export type VoidPrayerLevel = typeof VOID_PRAYER_LEVELS[number];
+export const VOID_PRAYER_LEVELS = ["SP", "SSS", "SS", "S", "A", "B", "C", "D"] as const;
+
 export type { VoidPrayerConfig } from "./config";
-export interface VoidPrayerState extends Record<string, unknown> {
-    date: string;
-    dailyUsed: number;
-    permanentExtra: number;
-    temporaryExtra: number;
-    temporaryDate: string;
-    consumableExtra: number;
-    costReduction: number;
-}
+
 export interface VoidPrayerDraw {
     item: Readonly<FaithItemDefinition>;
     easterEgg: boolean;

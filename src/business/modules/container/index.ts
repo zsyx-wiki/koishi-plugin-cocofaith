@@ -17,3 +17,5 @@ export default defineBuiltInGameplay({
   config: { key: "container", definition: CONTAINER_CONFIG },
   create: createContainerModule,
 });
+
+export type * from "./api";

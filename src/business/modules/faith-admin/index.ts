@@ -11,3 +11,5 @@ export default defineBuiltInGameplay({
   order: 10,
   create: createFaithAdminModule,
 });
+
+export type * from "./api";

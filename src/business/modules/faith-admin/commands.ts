@@ -1,26 +1,12 @@
+import type { FaithAdminCommand } from "./api";
+export type { FaithAdminCommandContext, FaithAdminCommand, FaithAdminCommandsApi } from "./api";
 import {
   CallbackDisposable,
-  type FaithBusinessCoreScope,
-  type FaithDisposable,
 } from "cocofaith-sdk/core";
-import type { GameplayResult as BusinessResult } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
-export interface FaithAdminCommandContext {
-  actorUid: number;
-  args: readonly string[];
-  core: FaithBusinessCoreScope;
-  requestId?: string;
-}
-export interface FaithAdminCommand {
-  business: string;
-  command: string;
-  description?: string;
-  execute(context: FaithAdminCommandContext): BusinessResult | Promise<BusinessResult>;
-}
-export interface FaithAdminCommandsApi {
-  register(command: FaithAdminCommand): FaithDisposable;
-  list(): readonly Omit<Readonly<FaithAdminCommand>, "execute">[];
-}
+
+
+
 export class FaithAdminCommandRegistry {
   private commands = new Map<string, Readonly<FaithAdminCommand>>();
   register(input: FaithAdminCommand) {

@@ -1,7 +1,7 @@
 import { lazyCompatibilityValue } from "../../framework/compatibility";
 import { provideGameplayInterface } from "cocofaith-sdk/gameplay";
 import { defineAdvancedGameplay } from "../../framework/types";
-import { ROOMS_API } from "../../shared/contracts";
+import { ROOMS_API } from "../../contracts/tokens";
 import { GameRoomService } from "./service";
 export function createRoomsModule() {
   let rooms: GameRoomService;

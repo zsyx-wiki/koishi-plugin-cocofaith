@@ -12,3 +12,5 @@ export default defineBuiltInGameplay({
   order: 50,
   create: createTitleModule,
 });
+
+export type * from "./api";

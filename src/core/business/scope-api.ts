@@ -1,20 +1,26 @@
+import type * as Sdk from "cocofaith-sdk/core";
 import type {
-  BonusCalculation,
-  BonusProvider,
-  BonusProviderOptions,
-  BonusRequest,
-  FaithBonusService,
-} from "../bonus";
-import type {
-  FaithEconomyChangeResult,
-  FaithEconomyOptions,
-  FaithEconomyService,
-  FaithMoney,
-  FaithRewardOptions,
-  FaithRewardPreview,
-  FaithTransferResult,
-  FaithWallet,
-} from "../economy";
+  FaithBusinessUsersApi,
+  FaithBusinessBonusesApi,
+  FaithBusinessEffectsApi,
+  FaithBusinessBulkApi,
+  FaithBusinessEconomyApi,
+  FaithBusinessEconomyOptions,
+  FaithBusinessRewardOptions,
+  FaithBusinessFaithsApi,
+} from "cocofaith-sdk/core";
+export type {
+  FaithBusinessUsersApi,
+  FaithBusinessBonusesApi,
+  FaithBusinessEffectsApi,
+  FaithBusinessBulkApi,
+  FaithBusinessEconomyApi,
+  FaithBusinessEconomyOptions,
+  FaithBusinessRewardOptions,
+  FaithBusinessFaithsApi,
+} from "cocofaith-sdk/core";
+import type { BonusRequest, FaithBonusService } from "../bonus";
+import type { FaithEconomyService, FaithMoney } from "../economy";
 import type { CreateFaithEffect, FaithEffectsService } from "../effects";
 import type { FaithRegistryService } from "../faith";
 import type { FaithHooksService } from "../hooks";
@@ -26,59 +32,21 @@ import type { FaithProfessionService } from "../professions";
 import type { FaithStatusIdentityService } from "../status-identities";
 import type {
   FaithCoreUserData,
-  FaithDefinition,
-  FaithEffectRow,
   FaithItemDefinition,
   FaithItemLevelDefinition,
-  FaithOpenResult,
   FaithProfessionDefinition,
   FaithStatusIdentityDefinition,
   IdentityInput,
   InventoryItem,
-  InventoryStack,
   ItemQuery,
   UserValueDelta,
 } from "../types";
-import type {
-  FaithBulkOperationsService,
-  FaithBulkOptions,
-  FaithBulkResult,
-  FaithUsersService,
-} from "../users";
-export interface FaithBusinessUsersApi {
-  listUids(after?: number, limit?: number): Promise<number[]>;
-  get(uid: number): Promise<FaithCoreUserData | null>;
-  require(uid: number): Promise<FaithCoreUserData>;
-  currentFaith(user: FaithCoreUserData): string | null;
-}
-export interface FaithBusinessItemsApi {
-  readonly revision: number;
-  register(
-    definition: FaithItemDefinition,
-    options?: {
-      replace?: boolean;
-    },
-  ): Readonly<FaithItemDefinition>;
-  registerMany(
-    definitions: readonly FaithItemDefinition[],
-    options?: {
-      replace?: boolean;
-    },
-  ): Readonly<FaithItemDefinition>[];
-  unregister(itemId: string): Promise<boolean>;
-  get(itemId: string): Readonly<FaithItemDefinition> | undefined;
+import type { FaithBulkOperationsService, FaithBulkOptions, FaithUsersService } from "../users";
+
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessItemsApi extends Sdk.FaithBusinessItemsApi {
   getByName(name: string): Readonly<FaithItemDefinition> | undefined;
-  resolve(itemIdOrName: string): Readonly<FaithItemDefinition> | undefined;
-  require(itemIdOrName: string): Readonly<FaithItemDefinition>;
-  has(itemIdOrName: string): boolean;
-  all(): Readonly<FaithItemDefinition>[];
   list(query?: ItemQuery): Readonly<FaithItemDefinition>[];
-  obtainable(): Readonly<FaithItemDefinition>[];
-  marketable(): Readonly<FaithItemDefinition>[];
-  isOpenable(itemIdOrName: string): boolean;
-  rollOpenable(itemIdOrName: string, random?: () => number): FaithOpenResult;
-  getInventoryEntries(uid: number): Promise<InventoryItem[]>;
-  getInventoryStacks(uid: number): Promise<InventoryStack[]>;
   getInventorySnapshot(uid: number): Promise<Readonly<Record<string, InventoryItem>>>;
   listInventory(
     uid: number,
@@ -89,12 +57,11 @@ export interface FaithBusinessItemsApi {
       limit?: number;
     },
   ): Promise<InventoryItem[]>;
-  getQuantity(uid: number, itemIdOrName: string): Promise<number>;
-  hasQuantity(uid: number, itemIdOrName: string, quantity?: number): Promise<boolean>;
   canReceive(uid: number, itemIdOrName: string, quantity?: number): Promise<boolean>;
   readonly levels: FaithBusinessItemLevelsApi;
 }
-export interface FaithBusinessItemLevelsApi {
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessItemLevelsApi extends Sdk.FaithBusinessItemLevelsApi {
   register(
     definition: FaithItemLevelDefinition,
     options?: {
@@ -110,56 +77,21 @@ export interface FaithBusinessItemLevelsApi {
   get(id: string): Readonly<FaithItemLevelDefinition> | undefined;
   require(id: string): Readonly<FaithItemLevelDefinition>;
   all(): Readonly<FaithItemLevelDefinition>[];
-  compare(a: string, b: string): number;
 }
-export interface FaithBusinessPermissionsApi {
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessPermissionsApi extends Sdk.FaithBusinessPermissionsApi {
   register(permission: string, policy: import("../permissions").PermissionPolicy): FaithDisposable;
-  check(
-    uid: number,
-    permission: string,
-    data?: Record<string, unknown>,
-    scope?: string,
-    scopeValue?: string,
-  ): Promise<boolean>;
 }
-export interface FaithBusinessProfessionsApi {
-  register(
-    definition: FaithProfessionDefinition,
-    options?: {
-      override?: boolean;
-    },
-  ): Readonly<FaithProfessionDefinition>;
-  registerMany(
-    definitions: readonly FaithProfessionDefinition[],
-    options?: {
-      override?: boolean;
-    },
-  ): Readonly<FaithProfessionDefinition>[];
-  unregister(id: string): boolean;
-  get(id: string): Readonly<FaithProfessionDefinition> | undefined;
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessProfessionsApi extends Sdk.FaithBusinessProfessionsApi {
   getByName(name: string): Readonly<FaithProfessionDefinition> | undefined;
-  resolve(idOrName: string): Readonly<FaithProfessionDefinition> | undefined;
-  require(idOrName: string): Readonly<FaithProfessionDefinition>;
-  all(): Readonly<FaithProfessionDefinition>[];
-  list(query?: {
-    faith?: string;
-    type?: string;
-    source?: string;
-  }): Readonly<FaithProfessionDefinition>[];
-  getUserProfession(uid: number): Promise<Readonly<FaithProfessionDefinition> | null>;
 }
-export interface FaithBusinessIdentitiesApi {
-  resolve(input: IdentityInput): Promise<number | null>;
-  list(uid: number): ReturnType<FaithIdentityService["list"]>;
-  bindExisting(uid: number, input: IdentityInput): Promise<boolean>;
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessIdentitiesApi extends Sdk.FaithBusinessIdentitiesApi {
+  list(uid: number): Promise<import("../types").FaithCoreUserIdentity[]>;
 }
-export interface FaithBusinessStatusIdentitiesApi {
-  register(definition: FaithStatusIdentityDefinition): FaithDisposable;
-  get(id: string): Readonly<FaithStatusIdentityDefinition> | undefined;
-  require(id: string): Readonly<FaithStatusIdentityDefinition>;
-  all(): readonly Readonly<FaithStatusIdentityDefinition>[];
-  state(uid: number, identity: string): ReturnType<FaithStatusIdentityService["state"]>;
-  list(uid: number): ReturnType<FaithStatusIdentityService["list"]>;
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessStatusIdentitiesApi extends Sdk.FaithBusinessStatusIdentitiesApi {
   listByIdentity(
     identity: string,
     options?: {
@@ -167,42 +99,11 @@ export interface FaithBusinessStatusIdentitiesApi {
       afterUid?: number;
       limit?: number;
     },
-  ): ReturnType<FaithStatusIdentityService["listByIdentity"]>;
+  ): Promise<readonly Readonly<import("../types").FaithStatusIdentityState>[]>;
 }
-export interface FaithBusinessFaithsApi {
-  get(name: string): Readonly<FaithDefinition> | undefined;
-  require(name: string): Readonly<FaithDefinition>;
-  has(name: string): boolean;
-  all(): Readonly<FaithDefinition>[];
-  paths(): readonly string[];
-  byPath(path: string): Readonly<FaithDefinition>[];
-  resolvePrayerWord(word: string): Readonly<FaithDefinition> | undefined;
-  registerUser(
-    identity: IdentityInput,
-    faithName: string,
-    initialGold?: number,
-  ): Promise<FaithCoreUserData>;
-  registerDynamic(input: {
-    name: string;
-    path: string;
-    creatorUid: number;
-    prayerWord?: string;
-    metadata?: Record<string, unknown>;
-  }): Promise<Readonly<FaithDefinition>>;
-  unregisterDynamic(name: string, creatorUid?: number): Promise<boolean>;
-  setPrayerWord(
-    name: string,
-    word: string,
-    creatorUid?: number,
-  ): Promise<Readonly<FaithDefinition>>;
-  setCustomProfession(
-    name: string,
-    type: string,
-    professionName: string,
-    creatorUid?: number,
-  ): Promise<Readonly<FaithDefinition>>;
-}
-export interface FaithBusinessHooksApi {
+
+/** SDK 契约的实现侧扩展，只声明额外能力或更完整的返回数据。 */
+export interface FaithBusinessHooksApi extends Sdk.FaithBusinessHooksApi {
   on<T, R = void>(
     event: string,
     handler: import("../hooks").FaithHookHandler<T, R>,
@@ -210,68 +111,7 @@ export interface FaithBusinessHooksApi {
   ): FaithDisposable;
   emit<T>(event: string, payload: T): Promise<import("../hooks").FaithHookReport<void>>;
 }
-export interface FaithBusinessBonusesApi {
-  calculate(request: BonusRequest): Promise<BonusCalculation>;
-  overview(uid: number, types?: readonly string[], baseValue?: number): Promise<BonusCalculation[]>;
-  registerProvider(
-    provider: BonusProvider,
-    options: Omit<BonusProviderOptions, "owner">,
-  ): FaithDisposable;
-}
-export interface FaithBusinessEffectsApi {
-  create(input: Omit<CreateFaithEffect, "owner">): Promise<FaithEffectRow>;
-  remove(id: number): Promise<unknown>;
-  list(query?: Parameters<FaithEffectsService["list"]>[0]): Promise<FaithEffectRow[]>;
-}
-export interface FaithBusinessBulkApi {
-  changeValuesForAll(
-    delta: Readonly<UserValueDelta>,
-    options: FaithBulkOptions,
-  ): Promise<FaithBulkResult>;
-  giveItemToAll(
-    itemIdOrName: string,
-    quantity: number,
-    options: FaithBulkOptions,
-  ): Promise<FaithBulkResult>;
-}
-export interface FaithBusinessEconomyOptions extends Omit<FaithEconomyOptions, "source"> {
-  action: string;
-}
-export interface FaithBusinessRewardOptions extends Omit<FaithRewardOptions, "source"> {
-  action: string;
-}
-export interface FaithBusinessEconomyApi {
-  getWallet(uid: number): Promise<FaithWallet>;
-  canAfford(uid: number, cost: Readonly<FaithMoney>): Promise<boolean>;
-  requireFunds(uid: number, cost: Readonly<FaithMoney>): Promise<FaithWallet>;
-  pay(
-    uid: number,
-    cost: Readonly<FaithMoney>,
-    options: FaithBusinessEconomyOptions,
-  ): Promise<FaithEconomyChangeResult>;
-  reward(
-    uid: number,
-    amount: Readonly<FaithMoney>,
-    options: FaithBusinessRewardOptions,
-  ): Promise<FaithEconomyChangeResult>;
-  refund(
-    uid: number,
-    amount: Readonly<FaithMoney>,
-    options: FaithBusinessEconomyOptions,
-  ): Promise<FaithEconomyChangeResult>;
-  transfer(
-    fromUid: number,
-    toUid: number,
-    amount: Readonly<FaithMoney>,
-    options: FaithBusinessEconomyOptions,
-  ): Promise<FaithTransferResult>;
-  previewReward(
-    uid: number,
-    amount: Readonly<FaithMoney>,
-    action: string,
-    metadata?: Readonly<Record<string, unknown>>,
-  ): Promise<FaithRewardPreview>;
-}
+
 export function createBusinessUsersApi(
   service: FaithUsersService,
 ): Readonly<FaithBusinessUsersApi> {

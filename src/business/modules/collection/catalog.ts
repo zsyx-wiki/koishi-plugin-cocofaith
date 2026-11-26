@@ -1,15 +1,9 @@
-import type { FaithBusinessItemsApi, FaithItemDefinition } from "cocofaith-sdk/core";
+import type { CollectionRule, CollectionEntry } from "./api";
+export type { CollectionRule, CollectionEntry } from "./api";
+import type { FaithBusinessItemsApi } from "cocofaith-sdk/core";
 import { BusinessError } from "../../framework/errors";
-export interface CollectionRule {
-    excluded?: boolean;
-    pool?: string;
-    category?: string;
-}
-export interface CollectionEntry {
-    item: Readonly<FaithItemDefinition>;
-    category: string;
-    pool: string;
-}
+
+
 const LIMITED = new Map([
     ["万相假面", "同人限定"], ["无知的冠冕", "同人限定"], ["无餍的欢愉", "同人限定"],
 ]);

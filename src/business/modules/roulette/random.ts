@@ -1,5 +1,7 @@
+import type { RandomSource } from "./api";
+export type { RandomSource } from "./api";
 import { randomInt } from "node:crypto";
-export type RandomSource = () => number;
+
 export const secureRandom: RandomSource = () => randomInt(0x100000000) / 0x100000000;
 export function pick<T>(values: readonly T[], random: RandomSource): T {
     if (!values.length)

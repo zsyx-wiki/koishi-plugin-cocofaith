@@ -8,7 +8,7 @@ import {
 } from "cocofaith-sdk/gameplay";
 import { BusinessError } from "../../framework/errors";
 import { adaptGameplayDefinition } from "../../framework/gameplay-adapter";
-import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API, CLUB_API, TITLE_API } from "../../shared/contracts";
+import { ADMIN_COMMANDS_API, ADMIN_FIELDS_API, CLUB_API, TITLE_API } from "../../contracts/tokens";
 import { CLUB_CONFIG, type ClubConfig } from "./config";
 import { CLUB_IDENTITY } from "./data";
 import { CLUB_MESSAGES } from "./messages";

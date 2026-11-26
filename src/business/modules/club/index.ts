@@ -14,3 +14,5 @@ export default defineBuiltInGameplay({
   config: { key: "club", definition: CLUB_CONFIG },
   create: createClubModule,
 });
+
+export type * from "./api";

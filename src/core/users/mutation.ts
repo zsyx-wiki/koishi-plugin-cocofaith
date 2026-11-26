@@ -51,12 +51,14 @@ export async function assertUserWrite(
 }
 export function validateDelta(delta: UserValueDelta) {
   const entries = Object.entries(delta);
-  if (!entries.length) throw new Error("数值变更不能为空");
+  if (!entries.length) throw new FaithCoreError("VALIDATION_FAILED", "数值变更不能为空");
   for (const [key, value] of entries) {
-    if (!USER_VALUE_FIELDS.has(key)) throw new Error(`不允许修改用户数值字段：${key}`);
-    if (!Number.isFinite(value)) throw new Error(`数值变更必须是有限数字：${key}`);
+    if (!USER_VALUE_FIELDS.has(key))
+      throw new FaithCoreError("VALIDATION_FAILED", `不允许修改用户数值字段：${key}`);
+    if (!Number.isFinite(value))
+      throw new FaithCoreError("VALIDATION_FAILED", `数值变更必须是有限数字：${key}`);
     if ((key === "audience_rank" || key === "abandon_count") && !Number.isSafeInteger(value))
-      throw new Error(`${key} 变更必须是安全整数`);
+      throw new FaithCoreError("VALIDATION_FAILED", `${key} 变更必须是安全整数`);
   }
 }
 
@@ -72,6 +74,6 @@ export function applyUserDelta(
   }
   validateUserValues(after);
   if (after.abandon_count < 0 || !Number.isSafeInteger(after.abandon_count))
-    throw new Error("弃誓次数不能为负数且必须是安全整数");
+    throw new FaithCoreError("VALIDATION_FAILED", "弃誓次数不能为负数且必须是安全整数");
   return after;
 }
